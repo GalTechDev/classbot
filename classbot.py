@@ -15,7 +15,7 @@ from system.lib import *
 global client
 client=None
 
-app_version = "4.0.1"
+app_version = "4.0.0"
 
 classbot_folder = f"app/edt/classbot_folder"
 classbot_config_file = f"{classbot_folder}/classbot_config.json"
