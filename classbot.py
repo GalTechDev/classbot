@@ -1,12 +1,7 @@
 # coding: utf-8
-
-from discord.ext import commands, tasks
 from pdf2image import convert_from_path
 from datetime import datetime, date
-from discord_slash import SlashCommand
-import discord_slash
-from RoleManager import RoleManager
-from itertools import cycle
+from app.edt.RoleManager import RoleManager
 from pathlib import Path
 import asyncio
 import requests
@@ -15,29 +10,19 @@ import os.path
 import json
 import time
 import sys
+from system.lib import *
 
-# FLex
+global client
+client=None
 
-try:
-    from PhopenAI import GetCode
-    Code = GetCode(1984)
-except Exception:
-    pass
+app_version = "3.7.5"
 
-# fin du flex
-
-# await asyncio.sleep(timera)
-# client.guilds
-
-bot_version = "3.7.5"
-classbot_folder = "classbot_folder"
+classbot_folder = f"app/edt/classbot_folder"
 classbot_config_file = f"{classbot_folder}/classbot_config.json"
-plante_verte = f"{classbot_folder}/team_plante_verte.png"
-classbot_token = f"{classbot_folder}/classbot_token"
 role_folder = f"{classbot_folder}/role_database.json"
 
 edt_database_path = f"{classbot_folder}/edt_database.json"
-edt_path = "edt"
+edt_path = "app/edt/pdf"
 
 programmer = os.path.basename(sys.argv[0])
 role_db = RoleManager(role_folder)
@@ -48,8 +33,11 @@ for name in vals:
     Path(name).mkdir(exist_ok=True)
 
 launch_check_edt = True
-bot_token = ""
 
+def __init__(bot_client):
+    global client
+    client=bot_client
+    init_event()
 
 def get_config():
     return {"edt": launch_check_edt}
@@ -66,16 +54,6 @@ except (FileNotFoundError, KeyError):
         f.write(json.dumps(get_config(), indent=4))
 
 
-try:
-    with open(classbot_token, "r") as f:
-        bot_token = f.readlines()[0].strip()
-except FileNotFoundError:
-    with open(classbot_token, "w") as f:
-        f.write("TOKEN_HERE")
-        input("please insert the bot token in the file classbot_token")
-        sys.exit(0)
-
-
 current_semester = "infoS1"
 try:
     with open(edt_database_path, "rb") as f:
@@ -88,26 +66,12 @@ except (FileNotFoundError, KeyError):
 intents = discord.Intents.default()
 intents.members = True
 
-client = commands.Bot(intents=intents, command_prefix="?", help_command=None)
-client.remove_command('help')
-slash = SlashCommand(client, sync_commands=True)
-
-status = cycle(['?edt pour emplois du temps', "Licence Info #1"])
-
-
-welcome_message = """
-Bienvenue {}, dans le serveur de la **Licence info!**
-Je t'invite à choisir ta classe dans le salon {}
-
-Si tu as la moindre question, n'hésite pas a demander de l'aide
-"""
 
 
 def get_help(ctx, is_slash: bool = False):
-    embed = discord.Embed(title="EDT BOT Commands", description=f"Préfix : `?` | Version : `{bot_version}`", color=discord.Color.blue())
+    embed = discord.Embed(title="EDT BOT Commands", description=f"Version : `{app_version}`", color=discord.Color.blue())
     embed.set_author(name='Liste des commandes')
     embed.add_field(name="**edt**", value="pour voir son emploi du temps")
-    embed.add_field(name="**clear (nombre de massage à retirer)**", value="pour supprimer le dernier message")
     embed.add_field(name="**bin (nombre binaire)**", value="convertir en entier")
 
     if is_in_staff(ctx, is_slash):
@@ -122,7 +86,6 @@ def get_help(ctx, is_slash: bool = False):
         embed.add_field(name="**uptedt (url) (classe)**", value="update l'emploi du temps")
         embed.add_field(name="**edtpush {pdf}**", value="prends le pdf en entrée pour le mettre à jour")
         embed.add_field(name="**version**", value="donne la version du bot")
-    # embed.set_image(url=attachment)
 
     return embed
 
@@ -222,22 +185,6 @@ def is_dev(ctx):
         if role in admins:
             return True
 
-
-def is_in_staff(ctx, direct_author=False):
-    if ctx.author.id in (366055261930127360, 649532920599543828):
-        return True
-    if not direct_author:
-        member = ctx.message.author
-    else:
-        member = ctx.author
-    roles = [role.name for role in member.roles]
-    admins = ["Admin", "Modo", "Bot Dev"]
-
-    for role in roles:
-        if role in admins:
-            return True
-
-
 def is_in_maintenance(ctx):
     if ctx.author.id in (366055261930127360, 649532920599543828):
         return True
@@ -254,74 +201,11 @@ def is_in_maintenance(ctx):
             return True
 
 
-@client.event
-async def on_ready():
-    change_status.start()
-    maintenance.start()
-
-    check_edt_lisc.start()
-
-    print("version : ", programmer, bot_version)
-    print("Logged in as : ", client.user.name)
-    print("ID : ", client.user.id)
-
-    for commu in role_db.get_discords_id():
-        try:
-            guild = client.get_guild(int(commu))
-        except Exception:
-            continue
-        for channels in role_db.get_channels_id(commu):
-            try:
-                channel = guild.get_channel(int(channels))
-            except Exception:
-                continue
-            for mess in role_db.get_messages_id(commu, channels):
-                try:
-                    message = await channel.fetch_message(int(mess))
-                except Exception:
-                    continue
-
-                for emote in role_db.get_emotes(commu, channels, mess):
-                    try:
-                        await message.add_reaction(emote)
-                    except Exception:
-                        continue
-
-
-@client.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send('Please pass in all required arguments')
-
-    elif isinstance(error, commands.CommandOnCooldown):
-        value = int(f"{error.retry_after:.0f}")
-        message = "Try again in "
-        message += convert_time(value)
-
-        em = discord.Embed(title="Slow it down bro!", description=message)
-        await ctx.send(embed=em)
-
-
 timer = time.time()
 
-
-@client.command(aliases=["tests"])
-@commands.check(is_in_staff)
 async def test(ctx):
     await ctx.send(":pizza:")
 
-
-@client.command(aliases=["ver", "ping"])
-@commands.check(is_in_staff)
-async def version(ctx):
-    value = int(time.time()-timer)
-    message = convert_time(value)
-    final_message = f"version : {bot_version}\nping : {round(client.latency * 1000)}ms :ping_pong:\ntime up : {message}"
-    await ctx.send(final_message)
-
-
-@client.command()
-@commands.cooldown(1, 300, commands.BucketType.user)
 async def clear(ctx, amount=1):
     if is_in_staff(ctx):
         await ctx.channel.purge(limit=amount+1)
@@ -331,8 +215,6 @@ async def clear(ctx, amount=1):
     else:
         await ctx.channel.purge(limit=6)
 
-
-@client.command(aliases=["bin", "int", "entier"])
 async def binaire(ctx, message):
     message = "Error!"
     try:
@@ -342,10 +224,9 @@ async def binaire(ctx, message):
 
     await ctx.send(message)
 
-
-@client.command()
-@commands.check(is_in_staff)
-async def sedt(ctx):
+@slash(name="sedt", description="Switch auto edt update on/off")
+@command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
+async def sedt(ctx:discord.Interaction):
     global launch_check_edt
 
     val = True
@@ -359,9 +240,7 @@ async def sedt(ctx):
 
     await ctx.channel.send(f"check edt set on : {val}")
 
-
-@client.command()
-@commands.check(is_in_maintenance)
+@command(name="uptedt", aliases=["uptedt"], checks=[is_in_staff])
 async def uptedt(ctx, url: str, cle_dico: str = ""):
     gestion = "maint."
     val = convert_url(url)
@@ -398,15 +277,11 @@ async def uptedt(ctx, url: str, cle_dico: str = ""):
     await ctx.send("`EDT database successfully updated!`")
 
 
-@client.command()
-@commands.check(is_in_maintenance)
 async def getdb(ctx):
     with open(edt_database_path, 'rb') as fp:
         await ctx.send(file=discord.File(fp, "edt_database.json"))
 
 
-@client.command()
-@commands.check(is_in_maintenance)
 async def pushdb(ctx):
     if len(ctx.message.attachments) == 0:
         await ctx.send("Error! No file attached!")
@@ -426,18 +301,17 @@ async def pushdb(ctx):
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
-
-@client.command()
-async def edt(ctx, cle_dico="", plus=""):
-    plus = plus.replace("+", "")
+@slash(name="edt", description="Envoie ton emploi du temps", guild=discord.Object(id=649021344058441739))
+async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
+    #plus = plus.replace("+", "")
 
     if cle_dico not in liscInfo.keys():
         cle_dico = cle_dico.replace("+", "")
-        plus = cle_dico
+        #plus = cle_dico
         cle_dico = ""
 
     if not cle_dico:
-        member = ctx.message.author
+        member = ctx.user
         roles = [role.name for role in member.roles]
         for role in roles:
             role = role.lower().replace(" ", "")
@@ -453,6 +327,7 @@ async def edt(ctx, cle_dico="", plus=""):
         plus = 0
 
     corrupt = False
+    
     infos = check_edt_info(liscInfo[cle_dico], plus)
 
     try:
@@ -472,7 +347,7 @@ async def edt(ctx, cle_dico="", plus=""):
 
     message = f"EDT pour : {cle_dico.upper()}"
     if plus:
-        message += f" (+{plus})"
+        message += f' ({"+" if plus >0 else ""}{plus})'
 
     current_date = date.isocalendar(datetime.now())
 
@@ -481,30 +356,23 @@ async def edt(ctx, cle_dico="", plus=""):
         week_end = True
 
     if corrupt and week_end:
-        guild = discord.utils.find(lambda g: g.id == ctx.guild_id, client.guilds)
-        dev = discord.utils.get(guild.roles, name="Bot Dev")
-        await channel.send(f"URL générée invalide, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`")
+        await channel.send(f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`")
         # await channel.send("`URL générée invalide, contactez un Admin pour de l'aide`")
         return
 
     elif corrupt:
-        guild = discord.utils.find(lambda g: g.id == ctx.guild_id, client.guilds)
-        dev = discord.utils.get(guild.roles, name="Bot Dev")
-        message += f"URL générée invalide, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`"
+        message += f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`"
         # message += "\n`EDT Corrompu! Ceci est une ancienne version!`"
 
-    await channel.send(message)
-    await send_edt_to_chat(channel, pdf_name, liscInfo[cle_dico])
+    
+    await send_edt_to_chat(ctx, message, pdf_name, liscInfo[cle_dico])
 
 
-@client.command()
 async def help(ctx):
     await ctx.send(embed=get_help(ctx, False))
 
 
-@client.command(aliases=["addmention", "addemoji", "addemote"])
-@commands.check(is_in_staff)
-async def addrole(ctx, role_: discord.Role, emote):
+async def addrole(ctx, role_: discord.Role, emote): #aliases=["addmention", "addemoji", "addemote"]
     try:
         refId = ctx.message.reference.message_id
     except Exception:
@@ -541,8 +409,6 @@ async def addrole(ctx, role_: discord.Role, emote):
     await ctx.channel.purge(limit=1)
 
 
-@client.command()
-@commands.check(is_in_staff)
 async def removerole(ctx, role: discord.Role):
 
     try:
@@ -571,8 +437,6 @@ async def removerole(ctx, role: discord.Role):
     await ctx.channel.purge(limit=1)
 
 
-@client.command()
-@commands.check(is_in_staff)
 async def removeemote(ctx, emote):
 
     try:
@@ -604,51 +468,55 @@ async def removeemote(ctx, emote):
 # -------------------------------- SLASH COMMANDE -------------------------------
 
 
-@slash.slash(name="help", description="liste des commande")
-async def help_slash(ctx: discord_slash.SlashContext):
-    await ctx.send(embed=get_help(ctx, True), hidden=True)
 
 
-@slash.slash(name="clear", description="efface les messages")
-async def clear_slash(ctx: discord_slash.SlashContext, amount: int = 1):
+@slash(name="help", description="Liste des commande", guild=discord.Object(id=649021344058441739))
+async def help_slash(ctx:discord.Interaction):
+    await ctx.response.send_message(embed=get_help(ctx, True), ephemeral=True)
+
+@slash(name="clear", description="Efface les messages", guild=discord.Object(id=649021344058441739))
+async def clear_slash(ctx: discord.Interaction, amount: int = 1):
     if is_in_staff(ctx, True):
         await ctx.channel.purge(limit=amount)
-        await ctx.send("Les messages ont bien été retiré.", hidden=True)
+        await ctx.response.send_message("Les messages ont bien été retiré.", ephemeral=True)
 
 
-@slash.slash(name="addrole", description="liste des commande")
-async def addrole_slash(ctx: discord_slash.SlashContext, role_: discord.Role, emote, message_id):
+@slash(name="addrole", description="liste des commande", guild=discord.Object(id=649021344058441739))
+async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str, message_id: int):
     if not is_in_staff(ctx, True):
-        await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", hidden=True)
+        await ctx.response.send_message(content="Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
     refId = message_id
-    role = role_.name
+    role = role.name
     commu = ctx.guild.id
     chat = ctx.channel.id
 
     guild_info = client.get_guild(int(commu))
     channel = guild_info.get_channel(int(chat))
+    message = ""
     try:
         role_message = await channel.fetch_message(int(refId))
+        try:
+            await role_message.add_reaction(emote)
+        except Exception:
+            message+="Erreur! Mauvaise emote!\n"
     except Exception:
-        await ctx.send("Erreur! message_id invalide!", hidden=True)
-
-    try:
-        await role_message.add_reaction(emote)
-    except Exception:
-        await ctx.send("Erreur! Mauvaise emote!", hidden=True)
-        return
+        message+="Erreur! message_id invalide!\n"
+    finally:
+        if message != "":
+            await ctx.response.send_message(message, ephemeral=True)
+            return
 
     await role_db.bind(commu, chat, refId, emote, role)
     role_db.save(role_db.role_database)
-    await ctx.send(f"{role_} à bien été créé avec l'emote {emote}.", hidden=True)
+    await ctx.response.send_message(f"{role_} à bien été créé avec l'emote {emote}.", ephemeral=True)
 
 
-@slash.slash(name="removerole", description="retire le role")
-async def removerole_slash(ctx: discord_slash.SlashContext, role: discord.Role, message_id):
+@slash(name="removerole", description="retire le role", guild=discord.Object(id=649021344058441739))
+async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message_id:int):
     if not is_in_staff(ctx, True):
-        await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", hidden=True)
+        await ctx.response.send_message("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
     refId = message_id
@@ -661,22 +529,22 @@ async def removerole_slash(ctx: discord_slash.SlashContext, role: discord.Role, 
     try:
         role_message = await channel.fetch_message(int(refId))
     except Exception:
-        await ctx.send("Erreur! message_id invalide!", hidden=True)
+        await ctx.response.send_message("Erreur! message_id invalide!", ephemeral=True)
 
     try:
         role_db.remove_role(commu, chat, refId, role_name)
     except Exception:
-        await ctx.send("Erreur! Role inexistant", hidden=True)
+        await ctx.response.send_message("Erreur! Role inexistant", ephemeral=True)
         return
 
     role_db.save(role_db.role_database)
-    await ctx.send(f"{role} à bien été retiré du message.", hidden=True)
+    await ctx.response.send_message(f"{role} à bien été retiré du message.", ephemeral=True)
 
 
-@slash.slash(name="removeemote", description="retir l'emote")
-async def removeemote_slash(ctx: discord_slash.SlashContext, emote, message_id):
+@slash(name="removeemote", description="retir l'emote", guild=discord.Object(id=649021344058441739))
+async def removeemote_slash(ctx: discord.Interaction, emote: str, message_id: int):
     if not is_in_staff(ctx, True):
-        await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", hidden=True)
+        await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
     refId = message_id
@@ -689,21 +557,19 @@ async def removeemote_slash(ctx: discord_slash.SlashContext, emote, message_id):
     try:
         role_message = await channel.fetch_message(int(refId))
     except Exception:
-        await ctx.send("Erreur! message_id invalide!", hidden=True)
+        await ctx.response.send_message("Erreur! message_id invalide!", ephemeral=True)
 
     try:
         await role_message.clear_reaction(emote)
         role_db.remove_emote(commu, chat, refId, role_name)
     except Exception:
-        await ctx.send("Erreur! Emote inexistant", hidden=True)
+        await ctx.response.send_message("Erreur! Emote inexistant", ephemeral=True)
         return
 
     role_db.save(role_db.role_database)
-    await ctx.send(f"{emote} à bien été retiré du message.", hidden=True)
+    await ctx.response.send_message(f"{emote} à bien été retiré du message.", ephemeral=True)
 
 
-@client.command()
-@commands.check(is_in_staff)
 async def edtpush(ctx):
     if len(ctx.message.attachments) == 0:
         await ctx.send("Error! No file attached!")
@@ -724,83 +590,46 @@ async def edtpush(ctx):
 
     await ctx.send(f"File installed at : {pat}")
 
-# --------------------------------- BLOCKCHAIN ---------------------------------
-
-
-"""
-@client.command(aliases=["em"])
-async def emb(ctx):
-    embed = discord.Embed(title="Your title here", description="Your desc here") #,color=Hex code
-    embed.add_field(name="Name", value="you can make as much as fields you like to")
-    # embed.set_footer(name="footer") #if you like to
-    embed.set_image(url="exampleVariable")  # throws error
-    await ctx.send(embed=embed)
-"""
-
-
 # ---------------------------------- EVENTS ------------------------------------
 
+def init_event():
+    @client.event
+    async def on_raw_reaction_add(ctx):
+        if ctx.user_id == client.user.id:
+            return
 
-@client.event
-async def on_raw_reaction_add(ctx):
-    if ctx.user_id == client.user.id:
-        return
+        message_id = str(ctx.message_id)
+        chat_id = ctx.channel_id
+        guild_id = ctx.guild_id
+        # print(ctx.emoji.name)
 
-    message_id = str(ctx.message_id)
-    chat_id = ctx.channel_id
-    guild_id = ctx.guild_id
-    # print(ctx.emoji.name)
+        guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
+        user = await guild.fetch_member(ctx.user_id)
 
-    guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
-    user = await guild.fetch_member(ctx.user_id)
+        val = role_db.is_binded_from_emote(guild_id, chat_id, message_id, ctx.emoji.name)
 
-    val = role_db.is_binded_from_emote(guild_id, chat_id, message_id, ctx.emoji.name)
-
-    if val:
-        role = discord.utils.get(guild.roles, name=val)
-        await user.add_roles(role)
-
-
-@client.event
-async def on_raw_reaction_remove(ctx):
-    if ctx.user_id == client.user.id:
-        return
-
-    guild_id = ctx.guild_id
-
-    # guild_id = 550450730192994306
-    guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
-    user = await guild.fetch_member(ctx.user_id)
-
-    val = role_db.is_binded_from_emote(guild_id, ctx.channel_id, ctx.message_id, ctx.emoji.name)
-
-    if val:
-        role = discord.utils.get(guild.roles, name=val)
-        await user.remove_roles(role)
+        if val:
+            role = discord.utils.get(guild.roles, name=val)
+            await user.add_roles(role)
 
 
-@client.event
-async def on_member_join(ctx):
-    if ctx.guild.id != 550450730192994306:
-        return
+    @client.event
+    async def on_raw_reaction_remove(ctx):
+        if ctx.user_id == client.user.id:
+            return
 
-    channel = ctx.guild.get_channel(724498186521280573)
-    roles = ctx.guild.get_channel(812841349610471444)
-    embed = discord.Embed(title="Bienvenu!", description=welcome_message.format(ctx.mention, roles.mention), color=discord.Color.blue())
-    # embed.set_author(name='Bienvenu!')
-    name = "team_plante_verte.png"
-    file = discord.File(plante_verte, filename=name)
-    embed.set_image(url=f"attachment://{name}")
-    await channel.send(file=file, embed=embed)
+        guild_id = ctx.guild_id
 
+        # guild_id = 550450730192994306
+        guild = discord.utils.find(lambda g: g.id == guild_id, client.guilds)
+        user = await guild.fetch_member(ctx.user_id)
 
-@client.event
-async def on_member_remove(ctx):
-    if ctx.guild.id != 550450730192994306:
-        return
+        val = role_db.is_binded_from_emote(guild_id, ctx.channel_id, ctx.message_id, ctx.emoji.name)
 
-    channel = ctx.guild.get_channel(724498186521280573)
-    await channel.send(f"Oh non! {ctx.name} nous a quitté!")
+        if val:
+            role = discord.utils.get(guild.roles, name=val)
+            await user.remove_roles(role)
+
 
 # ----------------------------------- EDT ----------------------------------
 
@@ -876,6 +705,7 @@ def check_edt_info(indices: list = None, plus: int = 0):
     # permet de transfomer la date en compteur du jour dans la semaine
     # et de la semaine dans l'année (retourne l'année, le numéro de semaine et le numéro du jour)
     # utilisé pour les ids du liens pour l'edt
+
     current_date = date.isocalendar(datetime.now())
 
     num_semaine = current_date[1]
@@ -901,24 +731,39 @@ def check_edt_info(indices: list = None, plus: int = 0):
     return edt_info
 
 
-async def send_edt_to_chat(channel, pdf_name: str, indices: list = None):
+async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, indices: list = None):
     path_to_pdf = f"{edt_path}/{pdf_name}"
     edt_id = indices[0]
 
-    with open(path_to_pdf, 'rb') as fp:
-        await channel.send(file=discord.File(fp, pdf_name))
+
+    embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())
+
+    #with open(path_to_pdf, 'rb') as fp:
+        #await ctx.response.send_message(file=discord.File(fp, pdf_name))
 
     pages = convert_from_path(path_to_pdf, 150)
-
-    i = 0
+    i = 1
+    
     for page in pages:
         file = f"{edt_path}/edt{edt_id}_{i}.jpg"
         page.save(file, 'JPEG')
+        file=(discord.File(file,f"edt{edt_id}_{i}.jpg"))
+        embed.set_image(url=f"attachment://edt{edt_id}_{i}.jpg")
+        if i==1:
+            embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
 
-        with open(file, 'rb') as fp:
-            await channel.send(file=discord.File(fp, file))
+            if type(ctx) == discord.Interaction:
+                await ctx.response.send_message(embed=embed,file=file, ephemeral=True)
+            else:
+                await ctx.send(embed=embed, files=file)
+
+        else:
+            embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
+            await ctx.followup.send(embed=embed,file=file, ephemeral=True)
+        
 
         i += 1
+
 
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_licence: dict = liscInfo):
@@ -936,27 +781,27 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
         return
 
     servers = client.guilds
-
+    
     for server in servers:
         chat = server.text_channels
         for channel in chat:
             if chat_name == str(channel):
                 formated_role = cle_dico.upper().replace("MIAGE", " miage")
                 role = discord.utils.get(server.roles, name=formated_role)
+                message = ""
                 if corrupt:
                     dev = discord.utils.get(server.roles, name="Bot Dev")
-                    await channel.send(f"changement d'edt pour : {role.mention} (pdf corrompu, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`")
+                    message += f"Changement d'edt pour : {role.mention} (pdf corrompu, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`"
                 else:
-                    await channel.send(f"changement d'edt pour : {role.mention}")
+                    message += f"Changement d'edt pour : {role.mention}"
 
-                await send_edt_to_chat(channel, pdf_name, dico_licence[cle_dico])
+                await send_edt_to_chat(channel, message, pdf_name, dico_licence[cle_dico])
                 break
 
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
-
-@tasks.loop(seconds=1800)
+@tasks(seconds=1800)
 async def check_edt_lisc():
     if not launch_check_edt:
         return
@@ -977,79 +822,3 @@ async def check_edt_lisc():
         except Exception:
             pass
         await asyncio.sleep(30)
-
-
-# ----------------------------COMMANDE MAINTENANCE----------------------------------
-
-
-@client.command()
-@commands.check(is_in_staff)
-async def reboot(ctx):
-    await client.change_presence(activity=discord.Game("Restarting..."), status=discord.Status.dnd)
-
-    await ctx.send("Restarting bot")
-    os.execv(sys.executable, ["None", os.path.basename(sys.argv[0])])
-
-
-@client.command()
-@commands.check(is_in_staff)
-async def stop(ctx):
-    await ctx.send("Stopping")
-    await client.change_presence(activity=discord.Game("Shutting down..."), status=discord.Status.dnd)
-    exit(1)
-    quit()
-
-
-@client.command(aliases=["upt"])
-@commands.check(is_dev)
-async def update(ctx, *, ipe=programmer):
-    await ctx.send("updating code")
-    await client.change_presence(activity=discord.Game("Updating..."), status=discord.Status.idle)
-
-    val = os.system(f"update.pyw {ipe} key=classbot")
-
-    await client.change_presence(activity=discord.Game("Licence info go!"), status=discord.Status.online)
-
-    if val:
-        await ctx.send("Done")
-        return
-
-    await ctx.send("Error!")
-
-
-@client.command()
-@commands.check(is_it_me)
-async def code(ctx, *, message=""):
-    message = message.replace("```", "").replace("`", "")
-    taille = 256
-    try:
-        taille = int(message.rsplit(" ", 1).pop())
-        message = message.rsplit(" ", 1)[0]
-    except Exception:
-        pass
-
-    my_code = Code.ask(message, taille)
-    await ctx.send(f"```py\n{my_code}```")
-
-
-# -------------------------------------- TASKS -----------------------------------
-
-
-@tasks.loop(seconds=127)
-async def change_status():
-    await client.change_presence(activity=discord.Game(next(status)))
-
-
-resetSystem = False
-
-
-@tasks.loop(seconds=43201)
-async def maintenance():
-    global resetSystem
-    if resetSystem:
-        await client.change_presence(activity=discord.Game("Restarting..."), status=discord.Status.idle)
-        os.execv(sys.executable, ["None", os.path.basename(sys.argv[0])])
-
-    resetSystem = True
-
-client.run(bot_token)
