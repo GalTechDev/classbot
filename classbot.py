@@ -1,23 +1,22 @@
 # coding: utf-8
 from pdf2image import convert_from_path
 from datetime import datetime, date
-from app.edt.RoleManager import RoleManager
+from app.classbot_UsOS_main.RoleManager import RoleManager
 from pathlib import Path
 import asyncio
 import requests
-import discord
 import os.path
 import json
 import time
 import sys
-from system.lib import *
+import system.lib  as lib
+discord = lib.discord
 
-global client
-client=None
+app = lib.App()
 
 app_version = "4.0.0"
-
-classbot_folder = f"app/edt/classbot_folder"
+app_folder = "app/classbot_UsOS_main"
+classbot_folder = f"{app_folder}/classbot_folder"
 classbot_config_file = f"{classbot_folder}/classbot_config.json"
 role_folder = f"{classbot_folder}/role_database.json"
 
@@ -66,28 +65,6 @@ except (FileNotFoundError, KeyError):
 intents = discord.Intents.default()
 intents.members = True
 
-
-
-def get_help(ctx, is_slash: bool = False):
-    embed = discord.Embed(title="EDT BOT Commands", description=f"Version : `{app_version}`", color=discord.Color.blue())
-    embed.set_author(name='Liste des commandes')
-    embed.add_field(name="**edt**", value="pour voir son emploi du temps")
-    embed.add_field(name="**bin (nombre binaire)**", value="convertir en entier")
-
-    if is_in_staff(ctx, is_slash):
-        embed.add_field(name="**addrole (role) (emoji)**", value="à utiliser en réponse à un précédant message, créé un emote pour donner un role")
-        embed.add_field(name="**help**", value="pour avoir ce message")
-        embed.add_field(name="**reboot**", value="pour restart le bot")
-        embed.add_field(name="**removeemote**", value="à utiliser en réponse à un message lié avec addrole pour retirer l'emote")
-        embed.add_field(name="**removerole**", value="à utiliser en réponse à un message lié avec addrole pour desactiver")
-        embed.add_field(name="**sedt**", value="desactive les notif de changement d'edt")
-        embed.add_field(name="**stop**", value="stop le bot")
-        embed.add_field(name="**update**", value="update le bot")
-        embed.add_field(name="**uptedt (url) (classe)**", value="update l'emploi du temps")
-        embed.add_field(name="**edtpush {pdf}**", value="prends le pdf en entrée pour le mettre à jour")
-        embed.add_field(name="**version**", value="donne la version du bot")
-
-    return embed
 
 
 def convert_time(value: int):
@@ -203,18 +180,6 @@ def is_in_maintenance(ctx):
 
 timer = time.time()
 
-async def test(ctx):
-    await ctx.send(":pizza:")
-
-async def clear(ctx, amount=1):
-    if is_in_staff(ctx):
-        await ctx.channel.purge(limit=amount+1)
-        clear.reset_cooldown(ctx)
-    elif amount < 5:
-        await ctx.channel.purge(limit=amount+1)
-    else:
-        await ctx.channel.purge(limit=6)
-
 async def binaire(ctx, message):
     message = "Error!"
     try:
@@ -224,8 +189,8 @@ async def binaire(ctx, message):
 
     await ctx.send(message)
 
-@slash(name="sedt", description="Switch auto edt update on/off")
-@command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
+@app.slash(name="sedt", description="Switch auto edt update on/off")
+@app.command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
 async def sedt(ctx:discord.Interaction):
     global launch_check_edt
 
@@ -240,7 +205,7 @@ async def sedt(ctx:discord.Interaction):
 
     await ctx.channel.send(f"check edt set on : {val}")
 
-@command(name="uptedt", aliases=["uptedt"], checks=[is_in_staff])
+@app.command(name="uptedt", aliases=["uptedt"], checks=[lib.is_in_staff])
 async def uptedt(ctx, url: str, cle_dico: str = ""):
     gestion = "maint."
     val = convert_url(url)
@@ -301,7 +266,7 @@ async def pushdb(ctx):
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
-@slash(name="edt", description="Envoie ton emploi du temps", guild=discord.Object(id=649021344058441739))
+@app.slash(name="edt", description="Envoie ton emploi du temps", guild=discord.Object(id=649021344058441739))
 async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     #plus = plus.replace("+", "")
 
@@ -366,10 +331,6 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
 
     
     await send_edt_to_chat(ctx, message, pdf_name, liscInfo[cle_dico])
-
-
-async def help(ctx):
-    await ctx.send(embed=get_help(ctx, False))
 
 
 async def addrole(ctx, role_: discord.Role, emote): #aliases=["addmention", "addemoji", "addemote"]
@@ -468,22 +429,9 @@ async def removeemote(ctx, emote):
 # -------------------------------- SLASH COMMANDE -------------------------------
 
 
-
-
-@slash(name="help", description="Liste des commande", guild=discord.Object(id=649021344058441739))
-async def help_slash(ctx:discord.Interaction):
-    await ctx.response.send_message(embed=get_help(ctx, True), ephemeral=True)
-
-@slash(name="clear", description="Efface les messages", guild=discord.Object(id=649021344058441739))
-async def clear_slash(ctx: discord.Interaction, amount: int = 1):
-    if is_in_staff(ctx, True):
-        await ctx.channel.purge(limit=amount)
-        await ctx.response.send_message("Les messages ont bien été retiré.", ephemeral=True)
-
-
-@slash(name="addrole", description="liste des commande", guild=discord.Object(id=649021344058441739))
+@app.slash(name="addrole", description="liste des commande", guild=discord.Object(id=649021344058441739))
 async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str, message_id: int):
-    if not is_in_staff(ctx, True):
+    if not lib.is_in_staff(ctx, True):
         await ctx.response.send_message(content="Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
@@ -510,12 +458,12 @@ async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str
 
     await role_db.bind(commu, chat, refId, emote, role)
     role_db.save(role_db.role_database)
-    await ctx.response.send_message(f"{role_} à bien été créé avec l'emote {emote}.", ephemeral=True)
+    await ctx.response.send_message(f"{role} à bien été créé avec l'emote {emote}.", ephemeral=True)
 
 
-@slash(name="removerole", description="retire le role", guild=discord.Object(id=649021344058441739))
+@app.slash(name="removerole", description="retire le role", guild=discord.Object(id=649021344058441739))
 async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message_id:int):
-    if not is_in_staff(ctx, True):
+    if not lib.is_in_staff(ctx, True):
         await ctx.response.send_message("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
@@ -541,9 +489,9 @@ async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message
     await ctx.response.send_message(f"{role} à bien été retiré du message.", ephemeral=True)
 
 
-@slash(name="removeemote", description="retir l'emote", guild=discord.Object(id=649021344058441739))
+@app.slash(name="removeemote", description="retir l'emote", guild=discord.Object(id=649021344058441739))
 async def removeemote_slash(ctx: discord.Interaction, emote: str, message_id: int):
-    if not is_in_staff(ctx, True):
+    if not lib.is_in_staff(ctx, True):
         await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
@@ -801,7 +749,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
-@tasks(seconds=1800)
+@app.tasks(seconds=1800)
 async def check_edt_lisc():
     if not launch_check_edt:
         return
