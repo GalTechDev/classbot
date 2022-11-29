@@ -205,7 +205,7 @@ async def sedt(ctx:discord.Interaction):
 
     await ctx.channel.send(f"check edt set on : {val}")
 
-@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[lib.is_in_staff])
+@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
 async def uptedt(ctx, url: str, cle_dico: str = ""):
     gestion = "maint."
     val = convert_url(url)
@@ -431,7 +431,7 @@ async def removeemote(ctx, emote):
 
 @Lib.app.slash(name="addrole", description="liste des commande", guild=discord.Object(id=649021344058441739))
 async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str, message_id: int):
-    if not lib.is_in_staff(ctx, True):
+    if not Lib.is_in_staff(ctx, True):
         await ctx.response.send_message(content="Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
@@ -463,7 +463,7 @@ async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str
 
 @Lib.app.slash(name="removerole", description="retire le role", guild=discord.Object(id=649021344058441739))
 async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message_id:int):
-    if not lib.is_in_staff(ctx, True):
+    if not Lib.is_in_staff(ctx, True):
         await ctx.response.send_message("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
@@ -491,7 +491,7 @@ async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message
 
 @Lib.app.slash(name="removeemote", description="retir l'emote", guild=discord.Object(id=649021344058441739))
 async def removeemote_slash(ctx: discord.Interaction, emote: str, message_id: int):
-    if not lib.is_in_staff(ctx, True):
+    if not Lib.is_in_staff(ctx, True):
         await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
         return
 
