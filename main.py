@@ -12,9 +12,7 @@ import sys
 import system.lib  as lib
 
 discord = lib.discord
-init_client = lib.init_client
-
-app = lib.App()
+Lib = lib.Lib_UsOS()
 
 app_version = "4.0.0"
 app_folder = "app/classbot_UsOS_main"
@@ -191,8 +189,8 @@ async def binaire(ctx, message):
 
     await ctx.send(message)
 
-@app.slash(name="sedt", description="Switch auto edt update on/off")
-@app.command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
+@Lib.app.slash(name="sedt", description="Switch auto edt update on/off")
+@Lib.app.command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
 async def sedt(ctx:discord.Interaction):
     global launch_check_edt
 
@@ -207,7 +205,7 @@ async def sedt(ctx:discord.Interaction):
 
     await ctx.channel.send(f"check edt set on : {val}")
 
-@app.command(name="uptedt", aliases=["uptedt"], checks=[lib.is_in_staff])
+@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[lib.is_in_staff])
 async def uptedt(ctx, url: str, cle_dico: str = ""):
     gestion = "maint."
     val = convert_url(url)
@@ -268,7 +266,7 @@ async def pushdb(ctx):
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
-@app.slash(name="edt", description="Envoie ton emploi du temps", guild=discord.Object(id=649021344058441739))
+@Lib.app.slash(name="edt", description="Envoie ton emploi du temps", guild=discord.Object(id=649021344058441739))
 async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     #plus = plus.replace("+", "")
 
@@ -431,7 +429,7 @@ async def removeemote(ctx, emote):
 # -------------------------------- SLASH COMMANDE -------------------------------
 
 
-@app.slash(name="addrole", description="liste des commande", guild=discord.Object(id=649021344058441739))
+@Lib.app.slash(name="addrole", description="liste des commande", guild=discord.Object(id=649021344058441739))
 async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str, message_id: int):
     if not lib.is_in_staff(ctx, True):
         await ctx.response.send_message(content="Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
@@ -463,7 +461,7 @@ async def addrole_slash(ctx: discord.Interaction, role: discord.Role, emote: str
     await ctx.response.send_message(f"{role} à bien été créé avec l'emote {emote}.", ephemeral=True)
 
 
-@app.slash(name="removerole", description="retire le role", guild=discord.Object(id=649021344058441739))
+@Lib.app.slash(name="removerole", description="retire le role", guild=discord.Object(id=649021344058441739))
 async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message_id:int):
     if not lib.is_in_staff(ctx, True):
         await ctx.response.send_message("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
@@ -491,7 +489,7 @@ async def removerole_slash(ctx: discord.Interaction, role: discord.Role, message
     await ctx.response.send_message(f"{role} à bien été retiré du message.", ephemeral=True)
 
 
-@app.slash(name="removeemote", description="retir l'emote", guild=discord.Object(id=649021344058441739))
+@Lib.app.slash(name="removeemote", description="retir l'emote", guild=discord.Object(id=649021344058441739))
 async def removeemote_slash(ctx: discord.Interaction, emote: str, message_id: int):
     if not lib.is_in_staff(ctx, True):
         await ctx.send("Vous n'avez pas les permissions pour utiliser cette commande.", ephemeral=True)
@@ -751,7 +749,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
-@app.tasks(seconds=1800)
+@Lib.app.tasks(seconds=1800)
 async def check_edt_lisc():
     if not launch_check_edt:
         return
