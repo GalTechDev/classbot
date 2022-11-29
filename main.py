@@ -10,7 +10,9 @@ import json
 import time
 import sys
 import system.lib  as lib
+
 discord = lib.discord
+init_client = lib.init_client
 
 app = lib.App()
 
@@ -21,7 +23,7 @@ classbot_config_file = f"{classbot_folder}/classbot_config.json"
 role_folder = f"{classbot_folder}/role_database.json"
 
 edt_database_path = f"{classbot_folder}/edt_database.json"
-edt_path = "app/edt/pdf"
+edt_path = f"{app_folder}/pdf"
 
 programmer = os.path.basename(sys.argv[0])
 role_db = RoleManager(role_folder)
