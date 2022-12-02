@@ -1,7 +1,7 @@
 # coding: utf-8
 from pdf2image import convert_from_path
 from datetime import datetime, date
-from app.classbot_UsOS_main.RoleManager import RoleManager
+from app.classbot.RoleManager import RoleManager
 from pathlib import Path
 import asyncio
 import requests
@@ -15,7 +15,7 @@ discord = lib.discord
 Lib = lib.Lib_UsOS()
 
 app_version = "4.0.0"
-app_folder = "app/classbot_UsOS_main"
+app_folder = "app/classbot"
 classbot_folder = f"{app_folder}/classbot_folder"
 classbot_config_file = f"{classbot_folder}/classbot_config.json"
 role_folder = f"{classbot_folder}/role_database.json"
@@ -283,7 +283,6 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
             if role in liscInfo.keys():
                 cle_dico = role
                 break
-
     pdf_name = f"ask-{cle_dico}.pdf"
 
     try:
@@ -292,22 +291,19 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         plus = 0
 
     corrupt = False
-    
     infos = check_edt_info(liscInfo[cle_dico], plus)
-
     try:
         size = int(infos["Content-Length"])
     except KeyError:
         size = 0
-
     status = int(infos["status"])
 
     if (size < 500) or (status != 200):
         pdf_name = f"{cle_dico}.pdf"
         corrupt = True
+        print("pass")
     else:
         download_edt(pdf_name, liscInfo[cle_dico], plus)
-
     channel = ctx.channel
 
     message = f"EDT pour : {cle_dico.upper()}"
@@ -315,7 +311,6 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         message += f' ({"+" if plus >0 else ""}{plus})'
 
     current_date = date.isocalendar(datetime.now())
-
     week_end = False
     if current_date[2] > 5:
         week_end = True
@@ -328,9 +323,10 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     elif corrupt:
         message += f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`"
         # message += "\n`EDT Corrompu! Ceci est une ancienne version!`"
+    else:
+        pass
 
-    
-    await send_edt_to_chat(ctx, message, pdf_name, liscInfo[cle_dico])
+    await send_edt_to_chat(ctx, message, pdf_name, cle_dico, plus, liscInfo[cle_dico])
 
 
 async def addrole(ctx, role_: discord.Role, emote): #aliases=["addmention", "addemoji", "addemote"]
@@ -580,7 +576,26 @@ def init_event():
 
 
 # ----------------------------------- EDT ----------------------------------
+class edt_view(discord.ui.View):
+    def __init__(self, key, plus, *, timeout=180) -> None:
+        super().__init__(timeout=timeout)
+        self.key = key
+        self.plus = plus
 
+    @discord.ui.button(style=discord.ButtonStyle.gray, emoji="\U00002b05")
+    async def prev_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await edt(interaction, cle_dico=self.key, plus=self.plus-1)
+        #await interaction.response.send_message(content="ok", ephemeral=True)
+
+    @discord.ui.button(label="Aujourd'hui", style=discord.ButtonStyle.gray, emoji="\U0001F4C5")
+    async def today_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await edt(interaction, cle_dico=self.key, plus=0)
+        #await interaction.response.send_message(content="ok", ephemeral=True)
+
+    @discord.ui.button(style=discord.ButtonStyle.gray, emoji="\U000027a1")
+    async def next_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await edt(interaction, cle_dico=self.key, plus=self.plus-1)
+        #await interaction.response.send_message(content="ok", ephemeral=True)
 
 def compare_edt(pdf_name, indices: list = None, plus: int = 0):
     path_to_pdf = f"{edt_path}/{pdf_name}"
@@ -626,6 +641,7 @@ def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
     # permet de transfomer la date en compteur du jour dans la semaine
     # et de la semaine dans l'année (retourne l'année, le numéro de semaine et le numéro du jour)
     # utilisé pour les ids du liens pour l'edt
+    
     current_date = date.isocalendar(datetime.now())
 
     num_semaine = current_date[1]
@@ -664,7 +680,7 @@ def check_edt_info(indices: list = None, plus: int = 0):
 
     while num_semaine-indices[2] < 0:
         num_semaine += 1
-
+    
     url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
     url = url_edt.format(indices[0], num_semaine - indices[2] + plus, indices[1], num_semaine + plus, annee)
 
@@ -679,7 +695,7 @@ def check_edt_info(indices: list = None, plus: int = 0):
     return edt_info
 
 
-async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, indices: list = None):
+async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None):
     path_to_pdf = f"{edt_path}/{pdf_name}"
     edt_id = indices[0]
 
@@ -688,11 +704,13 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
 
     #with open(path_to_pdf, 'rb') as fp:
         #await ctx.response.send_message(file=discord.File(fp, pdf_name))
-
+    
+    
     pages = convert_from_path(path_to_pdf, 150)
     i = 1
     
     for page in pages:
+        embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())
         file = f"{edt_path}/edt{edt_id}_{i}.jpg"
         page.save(file, 'JPEG')
         file=(discord.File(file,f"edt{edt_id}_{i}.jpg"))
@@ -701,17 +719,18 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
             embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
 
             if type(ctx) == discord.Interaction:
-                await ctx.response.send_message(embed=embed,file=file, ephemeral=True)
+                try:
+                    await ctx.response.send_message(embed=embed,file=file, ephemeral=True, view=edt_view(key, plus))
+                except Exception as error:
+                    print(error)
+
             else:
                 await ctx.send(embed=embed, files=file)
 
         else:
-            embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
+            embed.description = f"({i}/{len(pages)})" 
             await ctx.followup.send(embed=embed,file=file, ephemeral=True)
-        
-
         i += 1
-
 
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_licence: dict = liscInfo):
@@ -743,7 +762,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
                 else:
                     message += f"Changement d'edt pour : {role.mention}"
 
-                await send_edt_to_chat(channel, message, pdf_name, dico_licence[cle_dico])
+                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[cle_dico])
                 break
 
 
