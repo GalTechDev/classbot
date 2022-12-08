@@ -24,36 +24,121 @@ programmer = os.path.basename(sys.argv[0])
 
 vals = [classbot_folder, edt_path]
 
-for name in vals:
-    Lib.save.add_folder(name)
-    #Path(name).mkdir(exist_ok=True)
-
 launch_check_edt = True
+
+liscInfo = {
+    "infoS1": {
+        "l1t7": [
+            0,
+            0,
+            0
+        ],
+        "l1t5": [
+            0,
+            0,
+            0
+        ],
+        "l2t7": [
+            0,
+            0,
+            0
+        ],
+        "l2t5": [
+            0,
+            0,
+            0
+        ],
+        "l3t7": [
+            0,
+            0,
+            0
+        ],
+        "l3t5": [
+            0,
+            0,
+            0
+        ],
+        "l4t7": [
+            0,
+            0,
+            0
+        ],
+        "l3t7miage": [
+            0,
+            0,
+            0
+        ],
+        "l4t7miage": [
+            0,
+            0,
+            0
+        ]
+    },
+    "infoS2": {
+        "l1t7": [
+            0,
+            0,
+            0
+        ],
+        "l1t5": [
+            0,
+            0,
+            0
+        ],
+        "l2t7": [
+            0,
+            0,
+            0
+        ],
+        "l2t5": [
+            0,
+            0,
+            0
+        ],
+        "l3t7": [
+            0,
+            0,
+            0
+        ],
+        "l3t7miage": [
+            0,
+            0,
+            0
+        ]
+    }
+}
 
 def __init__(bot_client):
     global client
     client=bot_client
+    print("runed")
+
+def init_event():
+    global bot_config, launch_check_edt, current_semester, liscInfo
+    for name in vals:
+        Lib.save.add_folder(name)
+    
+    try:
+        bot_config = json.loads(Lib.save.read(path=classbot_config_file[0], name=classbot_config_file[1]))
+        launch_check_edt = bot_config["edt"]
+
+    except (FileNotFoundError, KeyError):
+        Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
+        Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
+
+
+    current_semester = "infoS1"
+    try:
+        liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
+        
+    except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
+        Lib.save.add_file(path=edt_database_path[0], name=edt_database_path[1], over_write=True)
+        Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(liscInfo))
     
 
 def get_config():
     return {"edt": launch_check_edt}
 
-
-try:
-    bot_config = json.loads(Lib.save.read(path=classbot_config_file[0], name=classbot_config_file[1]))
-    launch_check_edt = bot_config["edt"]
-
-except (FileNotFoundError, KeyError):
-    Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
-    Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
-
-
-current_semester = "infoS1"
-try:
-    liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
-    
-except (FileNotFoundError, KeyError):
-    pass
 
 
 intents = discord.Intents.default()
@@ -255,7 +340,7 @@ async def pushdb(ctx):
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
-@Lib.app.slash(name="edt", description="Envoie ton emploi du temps", guild=discord.Object(id=649021344058441739))
+@Lib.app.slash(name="edt", description="Envoie ton emploi du temps")
 async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     #plus = plus.replace("+", "")
 
