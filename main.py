@@ -13,13 +13,11 @@ import system.lib  as lib
 discord = lib.discord
 Lib = lib.Lib_UsOS()
 
-app_version = "4.0.0"
-app_folder = "app/classbot"
-classbot_folder = f"{app_folder}/classbot_folder"
-classbot_config_file = f"{classbot_folder}/classbot_config.json"
-
-edt_database_path = f"{classbot_folder}/edt_database.json"
-edt_path = f"{app_folder}/pdf"
+app_version = "4.0.1"
+classbot_folder = f"classbot_folder"
+classbot_config_file = (classbot_folder,"classbot_config.json")
+edt_database_path = (classbot_folder,"edt_database.json")
+edt_path = f"pdf"
 
 programmer = os.path.basename(sys.argv[0])
 
@@ -27,7 +25,8 @@ programmer = os.path.basename(sys.argv[0])
 vals = [classbot_folder, edt_path]
 
 for name in vals:
-    Path(name).mkdir(exist_ok=True)
+    Lib.save.add_folder(name)
+    #Path(name).mkdir(exist_ok=True)
 
 launch_check_edt = True
 
@@ -41,21 +40,18 @@ def get_config():
 
 
 try:
-    with open(classbot_config_file, "rb") as f:
-        bot_config = json.loads(f.read())
-        launch_check_edt = bot_config["edt"]
-        # launch_check_edt = True
+    bot_config = json.loads(Lib.save.read(path=classbot_config_file[0], name=classbot_config_file[1]))
+    launch_check_edt = bot_config["edt"]
 
 except (FileNotFoundError, KeyError):
-    with open(classbot_config_file, "w") as f:
-        f.write(json.dumps(get_config(), indent=4))
+    Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
+    Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
 
 
 current_semester = "infoS1"
 try:
-    with open(edt_database_path, "rb") as f:
-        liscInfo = json.loads(f.read())[current_semester]
-
+    liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
+    
 except (FileNotFoundError, KeyError):
     pass
 
@@ -78,8 +74,7 @@ def convert_time(value: int):
 
 def update_edt_database(key, value):
     global liscInfo
-    with open(edt_database_path, "rb") as f:
-        database = json.loads(f.read())
+    database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
 
     val = database[current_semester].get(key)
 
@@ -90,10 +85,9 @@ def update_edt_database(key, value):
         database[current_semester][key] = value
     except Exception:
         return False
-
-    with open(edt_database_path, "w") as f:
-        f.write(json.dumps(database, indent=4))
-
+    
+    Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(database, indent=4))
+    
     liscInfo = database[current_semester]
     return True
 
@@ -197,9 +191,8 @@ async def sedt(ctx:discord.Interaction):
         val = False
 
     launch_check_edt = val
-
-    with open(classbot_config_file, "w") as f:
-        f.write(json.dumps(get_config(), indent=4))
+    Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
+    
 
     await ctx.channel.send(f"check edt set on : {val}")
 
@@ -241,8 +234,7 @@ async def uptedt(ctx, url: str, cle_dico: str = ""):
 
 
 async def getdb(ctx):
-    with open(edt_database_path, 'rb') as fp:
-        await ctx.send(file=discord.File(fp, "edt_database.json"))
+    await ctx.send(file=discord.File(Lib.save.open(path=edt_database_path[0], name=edt_database_path[1]), "edt_database.json"))
 
 
 async def pushdb(ctx):
@@ -258,9 +250,8 @@ async def pushdb(ctx):
         return
 
     with requests.get(attachment, stream=True) as r:
-        with open(edt_database_path, 'wb') as fd:
-            for chunk in r.iter_content(1000):
-                fd.write(chunk)
+        for chunk in r.iter_content(1000):
+            Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=chunk, binary_mode=True)
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
@@ -342,9 +333,8 @@ async def edtpush(ctx):
 
     with requests.get(attachment, stream=True) as r:
         pat = f"{edt_path}/{name}"
-        with open(pat, 'wb') as fd:
-            for chunk in r.iter_content(1000):
-                fd.write(chunk)
+        for chunk in r.iter_content(1000):
+            Lib.save.write(name,edt_path, chunk, True)
 
     await ctx.send(f"File installed at : {pat}")
 
@@ -355,6 +345,19 @@ class edt_view(discord.ui.View):
         super().__init__(timeout=timeout)
         self.key = key
         self.plus = plus
+
+        indices = liscInfo[self.key]
+        current_date = date.isocalendar(datetime.now())
+        num_semaine = current_date[1]
+        annee = current_date[0]
+
+        if current_date[2] > 5:
+            num_semaine += 1
+
+        while num_semaine-indices[2] < 0:
+            num_semaine += 1
+        url_edt = f"http://applis.univ-nc.nc/gedfs/edtweb2/{indices[0]}.{num_semaine - indices[2] + self.plus}/PDF_EDT_{indices[1]}_{num_semaine + self.plus}_{annee}.pdf"
+        self.download = discord.ui.Button(label="Download", url=url_edt)
 
     @discord.ui.button(style=discord.ButtonStyle.gray, emoji="\U00002b05")
     async def prev_button(self, interaction:discord.Interaction, button:discord.ui.Button):
@@ -370,6 +373,10 @@ class edt_view(discord.ui.View):
     async def next_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await edt(interaction, cle_dico=self.key, plus=self.plus-1)
         #await interaction.response.send_message(content="ok", ephemeral=True)
+
+    def init_download(self):
+        self.add_item(self.download)
+
 
 def compare_edt(pdf_name, indices: list = None, plus: int = 0):
     path_to_pdf = f"{edt_path}/{pdf_name}"
@@ -432,10 +439,8 @@ def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
 
     path_to_pdf = f"{edt_path}/{pdf_name}"
     with requests.get(url, stream=True) as r:
-        with open(path_to_pdf, 'wb') as fd:
-            for chunk in r.iter_content(1000):
-                fd.write(chunk)
-
+        for chunk in r.iter_content(1000):
+            Lib.save.write(edt_path, pdf_name, chunk, True)
     return path_to_pdf
 
 
@@ -474,11 +479,7 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
     edt_id = indices[0]
 
 
-    embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())
-
-    #with open(path_to_pdf, 'rb') as fp:
-        #await ctx.response.send_message(file=discord.File(fp, pdf_name))
-    
+    embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())   
     
     pages = convert_from_path(path_to_pdf, 150)
     i = 1
@@ -494,7 +495,9 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
 
             if type(ctx) == discord.Interaction:
                 try:
-                    await ctx.response.send_message(embed=embed,file=file, ephemeral=True, view=edt_view(key, plus))
+                    view = edt_view(key, plus)
+                    view.init_download()
+                    await ctx.response.send_message(embed=embed,file=file, ephemeral=True, view=view)
                 except Exception as error:
                     print(error)
 
