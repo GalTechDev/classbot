@@ -392,15 +392,17 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     if corrupt and week_end:
         await channel.send(f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`")
         # await channel.send("`URL générée invalide, contactez un Admin pour de l'aide`")
-        return
 
     elif corrupt:
         message += f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`"
         # message += "\n`EDT Corrompu! Ceci est une ancienne version!`"
     else:
         pass
-
-    await send_edt_to_chat(ctx, message, pdf_name, cle_dico, plus, liscInfo[cle_dico])
+    
+    try:
+        await send_edt_to_chat(ctx, message, pdf_name, cle_dico, plus, liscInfo[cle_dico])
+    except Exception as error:
+        print(error)
 
 
 
@@ -560,18 +562,18 @@ def check_edt_info(indices: list = None, plus: int = 0):
 
 
 async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None):
-    path_to_pdf = f"{edt_path}/{pdf_name}"
+    path_to_pdf = (edt_path,pdf_name)
     edt_id = indices[0]
 
 
     embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())   
     
-    pages = convert_from_path(path_to_pdf, 150)
+    pages = convert_from_path(Lib.save.get_full_path(name=path_to_pdf[1], path=path_to_pdf[0]), 150)
     i = 1
     
     for page in pages:
         embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())
-        file = f"{edt_path}/edt{edt_id}_{i}.jpg"
+        file = Lib.save.get_full_path(name=f"edt{edt_id}_{i}.jpg", path=edt_path)
         page.save(file, 'JPEG')
         file=(discord.File(file,f"edt{edt_id}_{i}.jpg"))
         embed.set_image(url=f"attachment://edt{edt_id}_{i}.jpg")
