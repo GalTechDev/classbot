@@ -13,7 +13,7 @@ import system.lib  as lib
 discord = lib.discord
 Lib = lib.Lib_UsOS()
 
-app_version = "4.0.1"
+app_version = "4.0.2"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
