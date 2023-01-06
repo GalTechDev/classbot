@@ -108,12 +108,8 @@ liscInfo = {
     }
 }
 
-def __init__(bot_client):
-    global client
-    client=bot_client
-    print("runed")
-
-def init_event():
+@Lib.event.event()
+async def on_ready():
     global bot_config, launch_check_edt, current_semester, liscInfo
     for name in vals:
         Lib.save.add_folder(name)
@@ -611,7 +607,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
         corrupt = True
         return
 
-    servers = client.guilds
+    servers = Lib.client.guilds
     
     for server in servers:
         chat = server.text_channels
@@ -632,7 +628,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
-@Lib.app.tasks(seconds=1800)
+@lib.tasks(seconds=1800)
 async def check_edt_lisc():
     if not launch_check_edt:
         return
