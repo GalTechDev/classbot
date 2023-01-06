@@ -8,10 +8,9 @@ import os.path
 import json
 import time
 import sys
-import system.lib  as lib
+from system.lib import *
 
-discord = lib.discord
-Lib = lib.Lib_UsOS()
+Lib = Lib_UsOS()
 
 app_version = "4.0.2"
 classbot_folder = f"classbot_folder"
@@ -19,12 +18,14 @@ classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
 edt_path = f"pdf"
 
+
 programmer = os.path.basename(sys.argv[0])
 
 
 vals = [classbot_folder, edt_path]
 
 launch_check_edt = True
+current_semester = "infoS1"
 
 liscInfo = {
     "infoS1": {
@@ -277,14 +278,13 @@ async def sedt(ctx:discord.Interaction):
 
     await ctx.channel.send(f"check edt set on : {val}")
 
-@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
-async def uptedt(ctx, url: str, cle_dico: str = ""):
+#@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
+async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
     gestion = "maint."
     val = convert_url(url)
-    print(val)
 
     if not val:
-        await ctx.send("`Error! Something went wrong with the url!`")
+        await ctx.response.send_message(content="`Error! Something went wrong with the url!`", ephemeral=True)
         return
 
     member = ctx.message.author
@@ -302,16 +302,16 @@ async def uptedt(ctx, url: str, cle_dico: str = ""):
                 break
 
     if not cle_dico:
-        await ctx.send("`Error! Something went wrong with the role!`")
+        await ctx.response.send_message(content="`Error! Something went wrong with the role!`", ephemeral=True)
         return
 
     check = update_edt_database(cle_dico, val)
 
     if not check:
-        await ctx.send("`Error! Something went wrong with the role!`")
+        await ctx.response.send_message(content="`Error! Something went wrong with the role!`", ephemeral=True)
         return
 
-    await ctx.send("`EDT database successfully updated!`")
+    await ctx.response.send_message(content="`EDT database successfully updated!`", ephemeral=True)
 
 
 async def getdb(ctx):
@@ -625,10 +625,9 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
                 await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[cle_dico])
                 break
 
-
 # -------------------------------------- EDT UPDATE ------------------------------
 
-@lib.tasks(seconds=1800)
+@discord_tasks.loop(seconds=1800)
 async def check_edt_lisc():
     if not launch_check_edt:
         return
@@ -649,3 +648,87 @@ async def check_edt_lisc():
         except Exception:
             pass
         await asyncio.sleep(30)
+
+# -------------------------------------- EDT Config ---------------------------------
+
+# ----------------------------------------- View ------------------------------------
+
+class Uptedt_view(discord.ui.View):
+    def __init__(self, *, ctx: discord.Interaction, url="", _class=None, timeout: Optional[float] = 180):
+        super().__init__(timeout=timeout)
+        self.ctx = ctx
+        self.url = url
+        self._class = _class
+
+        self.add_item(self.Url_button(view=self, label="URL", style=discord.ButtonStyle.gray if self.url=="" else discord.ButtonStyle.green))
+        self.add_item(self.Class_select(view=self, placeholder="Choisir une classe"))
+        self.add_item(self.Valide_button(view=self, label="Valider", style=discord.ButtonStyle.blurple, disabled=(self.url=="" or self._class==None)))
+
+    class Url_button(discord.ui.Button):
+        def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
+            super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, url=url, emoji=emoji, row=row)
+            self.per_view = view
+
+        async def callback(self, interaction: discord.Interaction) -> Any:
+            await interaction.response.send_modal(Uptedt_modal(view=self.per_view, title="URL"))
+
+    class Class_select(discord.ui.Select):
+        def __init__(self, *, view, custom_id: str = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, options: List[discord.SelectOption] = MISSING, disabled: bool = False, row: Optional[int] = None) -> None:
+            self.per_view = view
+            database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
+            keys = database[current_semester].keys()
+            options = [discord.SelectOption(label=key, default=True if self.per_view._class == key else False) for key in keys]
+            super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=options, disabled=disabled, row=row)
+
+        async def callback(self, interaction: discord.Interaction) -> Any:
+            await updtedt_menu(self.per_view.ctx, self.per_view.url, self.values[0])
+            await valide_intaraction(interaction)
+
+    class Valide_button(discord.ui.Button):
+        def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
+            super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, url=url, emoji=emoji, row=row)
+            self.edt_url = view.url
+            self._class = view._class
+
+        async def callback(self, interaction: discord.Interaction) -> Any:
+            await uptedt(interaction, self.edt_url, self._class)
+
+class Config_view(discord.ui.View):
+    def __init__(self, *, ctx: discord.Interaction, timeout: Optional[float] = 180):
+        super().__init__(timeout=timeout)
+        self.ctx=ctx
+
+    @discord.ui.button(label="Update EDT",style=discord.ButtonStyle.gray)
+    async def uptedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await updtedt_menu(self.ctx)
+        await valide_intaraction(interaction)
+# ----------------------------------------- Modal -----------------------------------
+
+class Uptedt_modal(discord.ui.Modal):
+    def __init__(self, *, view: Uptedt_view, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING) -> None:
+        super().__init__(title=title, timeout=timeout, custom_id=custom_id)
+        self.url = discord.ui.TextInput(label="url", placeholder="//applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf")
+        self.add_item(self.url)
+        self.per_view = view
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        val = convert_url(self.url.__str__())
+        if not val:
+            raise Exception()
+        else:
+            await updtedt_menu(self.per_view.ctx, self.url.__str__(), self.per_view._class)
+            await valide_intaraction(interaction)
+
+# ----------------------------------------- Menu ------------------------------------
+
+async def updtedt_menu(ctx: discord.Interaction, url="", _class=None):
+    await ctx.edit_original_response(view=Uptedt_view(ctx=ctx, url=url, _class=_class))
+
+
+@Lib.app.config()
+async def config(ctx: discord.Interaction):
+    if not ctx.response.is_done():
+        await ctx.response.send_message(embed=discord.Embed(title="Chargement..."), ephemeral=True)
+    embed=discord.Embed(title=":gear:  ClassBot EDT Config")
+    embed.add_field(name="Info :", value=f"Notification : {launch_check_edt}")
+    await ctx.edit_original_response(embed=embed, view=Config_view(ctx=ctx))
