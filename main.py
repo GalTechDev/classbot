@@ -8,6 +8,7 @@ import os.path
 import json
 import time
 import sys
+import discord
 from system.lib import *
 
 Lib = Lib_UsOS()
@@ -263,8 +264,8 @@ async def binaire(ctx, message):
 
     await ctx.send(message)
 
-@Lib.app.slash(name="sedt", description="Switch auto edt update on/off")
-@Lib.app.command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
+#@Lib.app.slash(name="sedt", description="Switch auto edt update on/off")
+#@Lib.app.command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
 async def sedt(ctx:discord.Interaction):
     global launch_check_edt
 
@@ -275,8 +276,8 @@ async def sedt(ctx:discord.Interaction):
     launch_check_edt = val
     Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
     
-
-    await ctx.channel.send(f"check edt set on : {val}")
+    await valide_intaraction(ctx)
+    #await ctx.channel.send(f"check edt set on : {val}")
 
 #@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
 async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
@@ -336,7 +337,7 @@ async def pushdb(ctx):
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
-@Lib.app.slash(name="edt", description="Envoie ton emploi du temps")
+@Lib.app.slash(name="edt", description="Envoie ton emploi du temps", force_name=True)
 async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     #plus = plus.replace("+", "")
 
@@ -702,6 +703,11 @@ class Config_view(discord.ui.View):
     async def uptedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await updtedt_menu(self.ctx)
         await valide_intaraction(interaction)
+
+    @discord.ui.button(label="Auto EDT check",style=discord.ButtonStyle.gray)
+    async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await sedt(interaction)
+        await config(self.ctx)
 # ----------------------------------------- Modal -----------------------------------
 
 class Uptedt_modal(discord.ui.Modal):
@@ -722,7 +728,9 @@ class Uptedt_modal(discord.ui.Modal):
 # ----------------------------------------- Menu ------------------------------------
 
 async def updtedt_menu(ctx: discord.Interaction, url="", _class=None):
-    await ctx.edit_original_response(view=Uptedt_view(ctx=ctx, url=url, _class=_class))
+    embed=discord.Embed(title=":gear:  ClassBot EDT Config")
+    embed.description = "Update EDT url"
+    await ctx.edit_original_response(embed=embed, view=Uptedt_view(ctx=ctx, url=url, _class=_class))
 
 
 @Lib.app.config()
@@ -730,5 +738,5 @@ async def config(ctx: discord.Interaction):
     if not ctx.response.is_done():
         await ctx.response.send_message(embed=discord.Embed(title="Chargement..."), ephemeral=True)
     embed=discord.Embed(title=":gear:  ClassBot EDT Config")
-    embed.add_field(name="Info :", value=f"Notification : {launch_check_edt}")
+    embed.add_field(name="Info :", value=f"Auto EDT check : {launch_check_edt}")
     await ctx.edit_original_response(embed=embed, view=Config_view(ctx=ctx))
