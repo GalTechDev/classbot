@@ -342,11 +342,9 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     #plus = plus.replace("+", "")
 
     if cle_dico not in liscInfo.keys():
-        cle_dico = cle_dico.replace("+", "")
-        #plus = cle_dico
-        cle_dico = ""
+        cle_dico = None
 
-    if not cle_dico:
+    if cle_dico==None:
         member = ctx.user
         roles = [role.name for role in member.roles]
         for role in roles:
@@ -354,6 +352,9 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
             if role in liscInfo.keys():
                 cle_dico = role
                 break
+    if cle_dico==None:
+        await ctx.response.send_message(content="Vous n'avez pas de role assosié à votre classe, prenez en un ou précisez votre classe lors de la commande.", ephemeral=True)
+        return
     pdf_name = f"ask-{cle_dico}.pdf"
 
     try:
@@ -594,7 +595,7 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
         i += 1
 
 
-async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_licence: dict = liscInfo):
+async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
     check = compare_edt(pdf_name, dico_licence[cle_dico])
     corrupt = False
 
@@ -613,7 +614,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_name: str, dico_li
     for server in servers:
         chat = server.text_channels
         for channel in chat:
-            if chat_name == str(channel):
+            if chat_id == channel.id:
                 formated_role = cle_dico.upper().replace("MIAGE", " miage")
                 role = discord.utils.get(server.roles, name=formated_role)
                 message = ""
@@ -635,8 +636,8 @@ async def check_edt_lisc():
 
     this_time = datetime.now()
     role_liste = [
-        ["l4t7.pdf", "l4t7", "edt-4"], ["l2t5.pdf", "l2t5", "edt-2"], ["l1t5.pdf", "l1t5", "edt-1"],
-        ["l2t7.pdf", "l2t7", "edt-2"], ["l1t7.pdf", "l1t7", "edt-1"], ["l3t5.pdf", "l3t5", "edt-3"],
+        ["l4t7.pdf", "l4t7", "edt-4"], ["l2t5.pdf", "l2t5", "edt-2"], ["l1t5.pdf", "l1t5", 1049659378086719518],
+        ["l2t7.pdf", "l2t7", "edt-2"], ["l1t7.pdf", "l1t7", 1049659378086719518], ["l3t5.pdf", "l3t5", "edt-3"],
         ["l3t7.pdf", "l3t7", "edt-3"], ["l3t7miage.pdf", "l3t7miage", "edt-m"], ["l4t7miage.pdf", "l4t7miage", "edt-m"]
     ]
 
