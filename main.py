@@ -237,7 +237,8 @@ def convert_url(url: str = ""):
     temp = int(magic[0])
 
     if num_semaine - chiffre_temporaire < 0:
-        return False
+       pass
+        #return False
 
     id2 = chiffre_temporaire - temp
 
