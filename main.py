@@ -202,7 +202,9 @@ def update_edt_database(key, value):
         return False
 
     try:
-        database[current_semester][key] = value
+        database[current_semester][key][0] = value[0]
+        database[current_semester][key][1] = value[1]
+        database[current_semester][key][2] = value[2]
     except Exception:
         return False
         
