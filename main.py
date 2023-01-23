@@ -778,7 +778,7 @@ class EditChannel_view(discord.ui.View):
                 if self._class in database[semestre].keys():
                     database[semestre][self._class][-1]=self.values[0].id
                     Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(database))
-                    #await interaction.response.send_message(content="Done", ephemeral=True)                       
+                    await channel_edit_menu(self.ctx)                     
                     await valide_intaraction(interaction)
 
 class Config_view(discord.ui.View):
