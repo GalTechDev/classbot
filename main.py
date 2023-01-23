@@ -205,7 +205,7 @@ def update_edt_database(key, value):
         database[current_semester][key] = value
     except Exception:
         return False
-    
+        
     Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(database, indent=4))
     
     liscInfo = database[current_semester]
@@ -311,6 +311,7 @@ async def sedt(ctx:discord.Interaction):
         val = False
 
     launch_check_edt = val
+    Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
     Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
     
     await valide_intaraction(ctx)
@@ -456,6 +457,7 @@ async def edtpush(ctx):
     with requests.get(attachment, stream=True) as r:
         pat = f"{edt_path}/{name}"
         for chunk in r.iter_content(1000):
+            Lib.save.add_file(path=edt_path, name=name)
             Lib.save.write(name,edt_path, chunk, True)
 
     await ctx.send(f"File installed at : {pat}")
@@ -562,7 +564,8 @@ def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
     path_to_pdf = f"{edt_path}/{pdf_name}"
     with requests.get(url, stream=True) as r:
         for chunk in r.iter_content(1000):
-            Lib.save.write(edt_path, pdf_name, chunk, True)
+            Lib.save.add_file(path=edt_path, name=pdf_name)
+            Lib.save.write(path=edt_path, name=pdf_name, data=chunk, binary_mode=True)
     return path_to_pdf
 
 
