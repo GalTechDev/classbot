@@ -600,15 +600,12 @@ def check_edt_info(indices: list = None, plus: int = 0):
 
 
 async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None):
-    if not Lib.save.existe(name=edt_path, path=pdf_name):
+    if not Lib.save.existe(path=edt_path, name=pdf_name):
         embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
         await ctx.response.send_message(embed=embed, ephemeral=True)
         return
     edt_id = indices[0]
 
-
-    #embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())   
-    
     pages = convert_from_path(Lib.save.get_full_path(name=pdf_name, path=edt_path), 150)
     i = 1
     
