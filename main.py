@@ -597,13 +597,16 @@ def check_edt_info(indices: list = None, plus: int = 0):
 
 
 async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None):
-    path_to_pdf = (edt_path,pdf_name)
+    if not Lib.save.existe(name=edt_path, path=pdf_name):
+        embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
+        await ctx.response.send_message(embed=embed, ephemeral=True)
+        return
     edt_id = indices[0]
 
 
-    embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())   
+    #embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())   
     
-    pages = convert_from_path(Lib.save.get_full_path(name=path_to_pdf[1], path=path_to_pdf[0]), 150)
+    pages = convert_from_path(Lib.save.get_full_path(name=pdf_name, path=edt_path), 150)
     i = 1
     
     for page in pages:
@@ -676,11 +679,6 @@ async def check_edt_lisc():
     database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
 
     class_liste = [[stat[-2], _class, stat[-1]] for _class,stat in database[current_semester].items() if stat[-1]!=0]
-    #class_liste = [
-    #    ["l4t7.pdf", "l4t7", "edt-4"], ["l2t5.pdf", "l2t5", "edt-2"], ["l1t5.pdf", "l1t5", 1049659378086719518],
-    #    ["l2t7.pdf", "l2t7", "edt-2"], ["l1t7.pdf", "l1t7", 1049659378086719518], ["l3t5.pdf", "l3t5", "edt-3"],
-    #    ["l3t7.pdf", "l3t7", "edt-3"], ["l3t7miage.pdf", "l3t7miage", "edt-m"], ["l4t7miage.pdf", "l4t7miage", "edt-m"]
-    #]
 
     if not (6 <= this_time.hour <= 22):
         return
