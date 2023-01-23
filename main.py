@@ -33,46 +33,64 @@ liscInfo = {
         "l1t7": [
             0,
             0,
+            0,
+            "l1t7.pdf",
             0
         ],
         "l1t5": [
             0,
             0,
+            0,
+            "l1t5.pdf",
             0
         ],
         "l2t7": [
             0,
             0,
+            0,
+            "l2t7.pdf",
             0
         ],
         "l2t5": [
             0,
             0,
+            0,
+            "l2t5.pdf",
             0
         ],
         "l3t7": [
             0,
             0,
+            0,
+            "l3t7.pdf",
             0
         ],
         "l3t5": [
             0,
             0,
+            0,
+            "l3t5.pdf",
             0
         ],
         "l4t7": [
             0,
             0,
+            0,
+            "l4t7.pdf",
             0
         ],
         "l3t7miage": [
             0,
             0,
+            0,
+            "l3t7miage.pdf",
             0
         ],
         "l4t7miage": [
             0,
             0,
+            0,
+            "l4t7miage.pdf",
             0
         ]
     },
@@ -80,31 +98,50 @@ liscInfo = {
         "l1t7": [
             0,
             0,
+            0,
+            "l1t7.pdf",
             0
         ],
         "l1t5": [
             0,
             0,
+            0,
+            "l1t5.pdf",
             0
         ],
         "l2t7": [
             0,
             0,
+            0,
+            "l2t7.pdf",
             0
         ],
         "l2t5": [
             0,
             0,
+            0,
+            "l2t5.pdf",
             0
         ],
         "l3t7": [
             0,
             0,
+            0,
+            "l3t7.pdf",
+            0
+        ],
+        "l3t5": [
+            0,
+            0,
+            0,
+            "l3t5.pdf",
             0
         ],
         "l3t7miage": [
             0,
             0,
+            0,
+            "l3t7miage.pdf",
             0
         ]
     }
@@ -629,24 +666,28 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
-@discord_tasks.loop(seconds=1800)
+@Lib.app.loop(seconds=1800)
 async def check_edt_lisc():
+
     if not launch_check_edt:
         return
 
     this_time = datetime.now()
-    role_liste = [
-        ["l4t7.pdf", "l4t7", "edt-4"], ["l2t5.pdf", "l2t5", "edt-2"], ["l1t5.pdf", "l1t5", 1049659378086719518],
-        ["l2t7.pdf", "l2t7", "edt-2"], ["l1t7.pdf", "l1t7", 1049659378086719518], ["l3t5.pdf", "l3t5", "edt-3"],
-        ["l3t7.pdf", "l3t7", "edt-3"], ["l3t7miage.pdf", "l3t7miage", "edt-m"], ["l4t7miage.pdf", "l4t7miage", "edt-m"]
-    ]
+    database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
+
+    class_liste = [[stat[-2], _class, stat[-1]] for _class,stat in database[current_semester].items() if stat[-1]!=0]
+    #class_liste = [
+    #    ["l4t7.pdf", "l4t7", "edt-4"], ["l2t5.pdf", "l2t5", "edt-2"], ["l1t5.pdf", "l1t5", 1049659378086719518],
+    #    ["l2t7.pdf", "l2t7", "edt-2"], ["l1t7.pdf", "l1t7", 1049659378086719518], ["l3t5.pdf", "l3t5", "edt-3"],
+    #    ["l3t7.pdf", "l3t7", "edt-3"], ["l3t7miage.pdf", "l3t7miage", "edt-m"], ["l4t7miage.pdf", "l4t7miage", "edt-m"]
+    #]
 
     if not (6 <= this_time.hour <= 22):
         return
 
-    for i in range(len(role_liste)):
+    for i in range(len(class_liste)):
         try:
-            await check_edt_update(*role_liste[i])
+            await check_edt_update(*class_liste[i])
         except Exception:
             pass
         await asyncio.sleep(30)
@@ -695,6 +736,51 @@ class Uptedt_view(discord.ui.View):
         async def callback(self, interaction: discord.Interaction) -> Any:
             await uptedt(interaction, self.edt_url, self._class)
 
+class EditChannel_view(discord.ui.View):
+    def __init__(self, *, ctx: discord.Interaction, _class=None, timeout: Optional[float] = 180):
+        super().__init__(timeout=timeout)
+        self.ctx=ctx
+        self.add_item(self.Back_button(ctx=self.ctx, label="Back"))
+        self.add_item(self.ClassSelect(ctx=self.ctx, _class=_class, placeholder="Choisir une class"))
+        if _class!=None:
+            self.add_item(self.ChannelSelect(ctx=self.ctx, _class=_class, placeholder="Choisir un channel"))
+
+    class Back_button(discord.ui.Button):
+        def __init__(self, *, ctx: discord.Interaction, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
+            super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, url=url, emoji=emoji, row=row)
+            self.ctx=ctx
+
+        async def callback(self, interaction: discord.Interaction) -> Any:
+            await config(self.ctx)
+            await valide_intaraction(interaction)
+
+    class ClassSelect(discord.ui.Select):
+        def __init__(self, *, ctx: discord.Interaction, _class=None, custom_id: str = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, options: List[discord.SelectOption] = MISSING, disabled: bool = False, row: Optional[int] = None) -> None:
+            self.ctx = ctx
+            database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
+            keys = database[current_semester].keys()
+            options = [discord.SelectOption(label=key, default=(key ==_class)) for key in keys]
+            super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=options, disabled=disabled, row=row)
+
+        async def callback(self, interaction: discord.Interaction) -> Any:
+            await channel_edit_menu(self.ctx, self.values[0])
+            await valide_intaraction(interaction)
+
+    class ChannelSelect(discord.ui.ChannelSelect):
+        def __init__(self, *, ctx: discord.Interaction, _class, custom_id: str = MISSING, channel_types: List[discord.ChannelType] = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, disabled: bool = False, row: Optional[int] = None) -> None:
+            super().__init__(custom_id=custom_id, channel_types=channel_types, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled, row=row)
+            self.ctx = ctx
+            self._class = _class
+
+        async def callback(self, interaction: discord.Interaction) -> Any:
+            database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
+            for semestre in ["infoS1","infoS2"]:
+                if self._class in database[semestre].keys():
+                    database[semestre][self._class][-1]=self.values[0].id
+                    Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(database))
+                    #await interaction.response.send_message(content="Done", ephemeral=True)                       
+                    await valide_intaraction(interaction)
+
 class Config_view(discord.ui.View):
     def __init__(self, *, ctx: discord.Interaction, timeout: Optional[float] = 180):
         super().__init__(timeout=timeout)
@@ -709,6 +795,12 @@ class Config_view(discord.ui.View):
     async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await sedt(interaction)
         await config(self.ctx)
+
+    @discord.ui.button(label="Notification EDT",style=discord.ButtonStyle.gray)
+    async def channel_edit_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await channel_edit_menu(self.ctx)
+        await valide_intaraction(interaction)
+
 # ----------------------------------------- Modal -----------------------------------
 
 class Uptedt_modal(discord.ui.Modal):
@@ -733,6 +825,10 @@ async def updtedt_menu(ctx: discord.Interaction, url="", _class=None):
     embed.description = "Update EDT url"
     await ctx.edit_original_response(embed=embed, view=Uptedt_view(ctx=ctx, url=url, _class=_class))
 
+async def channel_edit_menu(ctx: discord.Interaction, _class=None):
+    embed=discord.Embed(title=":gear:  ClassBot EDT Config")
+    embed.description = "Edit Class Channel"
+    await ctx.edit_original_response(embed=embed, view=EditChannel_view(ctx=ctx, _class=_class))
 
 @Lib.app.config()
 async def config(ctx: discord.Interaction):
