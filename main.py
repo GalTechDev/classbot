@@ -416,7 +416,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         corrupt = True
         print("pass")
     else:
-        download_edt(pdf_name, liscInfo[cle_dico], plus)
+        download_edt(pdf_name, liscInfo[cle_dico], plus, decal=8 if cle_dico=="l1t7" else 0)
     channel = ctx.channel
 
     message = f"EDT pour : {cle_dico.upper()}"
@@ -545,7 +545,7 @@ def compare_edt(pdf_name, indices: list = None, plus: int = 0):
     return 0
 
 
-def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
+def download_edt(pdf_name: str, indices: list = None, plus: int = 0, decal=0):
     # permet de transfomer la date en compteur du jour dans la semaine
     # et de la semaine dans l'année (retourne l'année, le numéro de semaine et le numéro du jour)
     # utilisé pour les ids du liens pour l'edt
@@ -562,7 +562,7 @@ def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
         num_semaine += 1
 
     url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
-    url = url_edt.format(indices[0], num_semaine - indices[2] + plus, indices[1], num_semaine + plus, annee)
+    url = url_edt.format(indices[0], num_semaine - indices[2] + plus + decal, indices[1], num_semaine + plus, annee)
 
     path_to_pdf = f"{edt_path}/{pdf_name}"
     Lib.save.add_file(path=edt_path, name=pdf_name, over_write=True)
@@ -644,7 +644,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
     corrupt = False
 
     if check == 0:
-        download_edt(pdf_name, dico_licence[cle_dico])
+        download_edt(pdf_name, dico_licence[cle_dico], decal=8 if cle_dico=="l1t7" else 0)
 
     elif check in (2, 5, 6):
         return
