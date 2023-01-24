@@ -498,7 +498,7 @@ class edt_view(discord.ui.View):
 
     @discord.ui.button(style=discord.ButtonStyle.gray, emoji="\U000027a1")
     async def next_button(self, interaction:discord.Interaction, button:discord.ui.Button):
-        await edt(interaction, cle_dico=self.key, plus=self.plus-1)
+        await edt(interaction, cle_dico=self.key, plus=self.plus+1)
         #await interaction.response.send_message(content="ok", ephemeral=True)
 
     def init_download(self):
@@ -565,10 +565,11 @@ def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
     url = url_edt.format(indices[0], num_semaine - indices[2] + plus, indices[1], num_semaine + plus, annee)
 
     path_to_pdf = f"{edt_path}/{pdf_name}"
+    Lib.save.add_file(path=edt_path, name=pdf_name, over_write=True)
     with requests.get(url, stream=True) as r:
         for chunk in r.iter_content(1000):
-            Lib.save.add_file(path=edt_path, name=pdf_name)
-            Lib.save.write(path=edt_path, name=pdf_name, data=chunk, binary_mode=True)
+            data=Lib.save.read(path=edt_path, name=pdf_name, binary_mode=True)
+            Lib.save.write(path=edt_path, name=pdf_name, data=data+chunk, binary_mode=True)
     return path_to_pdf
 
 
