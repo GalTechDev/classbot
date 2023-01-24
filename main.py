@@ -214,7 +214,7 @@ def update_edt_database(key, value):
     return True
 
 
-def convert_url(url: str = ""):
+def convert_url(url: str = "", cle_dico=None):
     if "edtweb2" not in url:
         return False
 
@@ -246,7 +246,7 @@ def convert_url(url: str = ""):
 
     value = [id0, id1, id2]
 
-    infos = check_edt_info(value)
+    infos = check_edt_info(value, decal=8 if cle_dico=="l1t7"else 0)
 
     try:
         size = int(infos["Content-Length"])
@@ -323,7 +323,7 @@ async def sedt(ctx:discord.Interaction):
 #@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
 async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
     gestion = "maint."
-    val = convert_url(url)
+    val = convert_url(url, cle_dico)
 
     if not val:
         await ctx.response.send_message(content="`Error! Something went wrong with the url!`", ephemeral=True)
@@ -404,7 +404,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         plus = 0
 
     corrupt = False
-    infos = check_edt_info(liscInfo[cle_dico], plus)
+    infos = check_edt_info(liscInfo[cle_dico], plus, 8 if cle_dico=="l1t7"else 0)
     try:
         size = int(infos["Content-Length"])
     except KeyError:
@@ -573,7 +573,7 @@ def download_edt(pdf_name: str, indices: list = None, plus: int = 0):
     return path_to_pdf
 
 
-def check_edt_info(indices: list = None, plus: int = 0):
+def check_edt_info(indices: list = None, plus: int = 0, decal=0):
     # permet de transfomer la date en compteur du jour dans la semaine
     # et de la semaine dans l'année (retourne l'année, le numéro de semaine et le numéro du jour)
     # utilisé pour les ids du liens pour l'edt
@@ -590,7 +590,7 @@ def check_edt_info(indices: list = None, plus: int = 0):
         num_semaine += 1
     
     url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
-    url = url_edt.format(indices[0], num_semaine - indices[2] + plus, indices[1], num_semaine + plus, annee)
+    url = url_edt.format(indices[0], num_semaine - indices[2] + plus+decal, indices[1], num_semaine + plus, annee)
 
     edt_info = {}
 
@@ -813,7 +813,7 @@ class Uptedt_modal(discord.ui.Modal):
         self.per_view = view
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        val = convert_url(self.url.__str__())
+        val = convert_url(self.url.__str__(),self.per_view._class)
         if not val:
             raise Exception()
         else:
