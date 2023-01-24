@@ -590,8 +590,7 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
         num_semaine += 1
     
     url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
-    url = url_edt.format(indices[0], num_semaine - indices[2] + plus+decal, indices[1], num_semaine + plus, annee)
-
+    url = url_edt.format(indices[0], num_semaine - indices[2] + plus + decal, indices[1], num_semaine + plus, annee)
     edt_info = {}
 
     val = requests.head(url)
