@@ -151,32 +151,27 @@ liscInfo = {
 def get_config():
     return {"edt": launch_check_edt, "hide": hide_edt}
 
+@Lib.event.on_ready()
+    for name in vals:
+        Lib.save.add_folder(name)
 
-for name in vals:
-    Lib.save.add_folder(name)
-    
-try:
-    bot_config = json.loads(Lib.save.read(path=classbot_config_file[0], name=classbot_config_file[1]))
-    launch_check_edt = bot_config["edt"]
-    hide_edt = bot_config["hide"]
+    try:
+        bot_config = json.loads(Lib.save.read(path=classbot_config_file[0], name=classbot_config_file[1]))
+        launch_check_edt = bot_config["edt"]
+        hide_edt = bot_config["hide"]
 
-except (FileNotFoundError, KeyError):
-    Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
-    Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
-
-
-current_semester = "infoS1"
-try:
-    liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
-        
-except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
-    Lib.save.add_file(path=edt_database_path[0], name=edt_database_path[1], over_write=True)
-    Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(liscInfo))   
+    except (FileNotFoundError, KeyError):
+        Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
+        Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
 
 
-intents = discord.Intents.default()
-intents.members = True
+    current_semester = "infoS1"
+    try:
+        liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
 
+    except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
+        Lib.save.add_file(path=edt_database_path[0], name=edt_database_path[1], over_write=True)
+        Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(liscInfo))   
 
 def convert_time(value: int):
     val3, val2, val = 0, value//60, value % 60
