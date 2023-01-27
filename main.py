@@ -798,7 +798,7 @@ class Config_view(discord.ui.View):
         
     @discord.ui.button(label="EDT Visibility",style=discord.ButtonStyle.gray)
     async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
-        await sedt(interaction, not hide_edt)
+        await sedt(interaction, hide = not hide_edt)
         await config(self.ctx)
 
     @discord.ui.button(label="EDT Notification",style=discord.ButtonStyle.gray)
@@ -840,6 +840,6 @@ async def config(ctx: discord.Interaction):
     if not ctx.response.is_done():
         await ctx.response.send_message(embed=discord.Embed(title="Chargement..."), ephemeral=True)
     embed=discord.Embed(title=":gear:  ClassBot EDT Config")
-    embed.add_field(name="Info :", value=f"Auto EDT check : {launch_check_edt}")
+    embed.add_field(name="Info :", value=f"Auto EDT check : {'actived' if launch_check_edt else 'disactived'}")
     embed.add_field(name="Info :", value=f"EDT otification : {'hide' if hide_edt else 'show'}")
     await ctx.edit_original_response(embed=embed, view=Config_view(ctx=ctx))
