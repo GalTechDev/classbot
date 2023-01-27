@@ -148,6 +148,10 @@ liscInfo = {
     }
 }
 
+def get_config():
+    return {"edt": launch_check_edt, "hide": hide_edt}
+
+
 for name in vals:
     Lib.save.add_folder(name)
     
@@ -169,14 +173,9 @@ except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
     Lib.save.add_file(path=edt_database_path[0], name=edt_database_path[1], over_write=True)
     Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(liscInfo))   
 
-def get_config():
-    return {"edt": launch_check_edt, "hide": hide_edt}
-
-
 
 intents = discord.Intents.default()
 intents.members = True
-
 
 
 def convert_time(value: int):
