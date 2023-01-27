@@ -797,7 +797,7 @@ class Config_view(discord.ui.View):
         await config(self.ctx)
         
     @discord.ui.button(label="EDT Visibility",style=discord.ButtonStyle.gray)
-    async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+    async def hide_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await sedt(interaction, hide = not hide_edt)
         await config(self.ctx)
 
