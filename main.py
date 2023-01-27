@@ -26,6 +26,7 @@ programmer = os.path.basename(sys.argv[0])
 vals = [classbot_folder, edt_path]
 
 launch_check_edt = True
+hide_edt = False
 current_semester = "infoS1"
 
 liscInfo = {
@@ -149,13 +150,14 @@ liscInfo = {
 
 @Lib.event.event()
 async def on_ready():
-    global bot_config, launch_check_edt, current_semester, liscInfo
+    global bot_config, launch_check_edt, current_semester, liscInfo, hide_edt
     for name in vals:
         Lib.save.add_folder(name)
     
     try:
         bot_config = json.loads(Lib.save.read(path=classbot_config_file[0], name=classbot_config_file[1]))
         launch_check_edt = bot_config["edt"]
+        hide_edt = bot_config["hide"]
 
     except (FileNotFoundError, KeyError):
         Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
@@ -172,7 +174,7 @@ async def on_ready():
     
 
 def get_config():
-    return {"edt": launch_check_edt}
+    return {"edt": launch_check_edt, "hide": hide_edt}
 
 
 
@@ -306,15 +308,12 @@ async def binaire(ctx, message):
 
 #@Lib.app.slash(name="sedt", description="Switch auto edt update on/off")
 #@Lib.app.command(name="sedt", aliases=["sedt"], help_text="Switch auto edt update on/off")
-async def sedt(ctx:discord.Interaction):
-    global launch_check_edt
+async def sedt(ctx:discord.Interaction, auto_check=launch_check_edt, hide = hide_edt):
+    global launch_check_edt, hide_edt
 
-    val = True
-    if launch_check_edt:
-        val = False
-
-    launch_check_edt = val
-    Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
+    launch_check_edt = auto_check
+    hide_edt = hide
+    #Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
     Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
     
     await valide_intaraction(ctx)
@@ -625,7 +624,7 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
                 try:
                     view = edt_view(key, plus)
                     view.init_download()
-                    await ctx.response.send_message(embed=embed,file=file, ephemeral=True, view=view)
+                    await ctx.response.send_message(embed=embed,file=file, ephemeral=hide_edt, view=view)
                 except Exception as error:
                     print(error)
 
@@ -634,7 +633,7 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
 
         else:
             embed.description = f"({i}/{len(pages)})" 
-            await ctx.followup.send(embed=embed,file=file, ephemeral=True)
+            await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
         i += 1
 
 
@@ -792,12 +791,17 @@ class Config_view(discord.ui.View):
         await updtedt_menu(self.ctx)
         await valide_intaraction(interaction)
 
-    @discord.ui.button(label="Auto EDT check",style=discord.ButtonStyle.gray)
+    @discord.ui.button(label="Auto EDT Check",style=discord.ButtonStyle.gray)
     async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
-        await sedt(interaction)
+        await sedt(interaction, not launch_check_edt)
+        await config(self.ctx)
+        
+    @discord.ui.button(label="EDT Visibility",style=discord.ButtonStyle.gray)
+    async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
+        await sedt(interaction, not hide_edt)
         await config(self.ctx)
 
-    @discord.ui.button(label="Notification EDT",style=discord.ButtonStyle.gray)
+    @discord.ui.button(label="EDT Notification",style=discord.ButtonStyle.gray)
     async def channel_edit_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await channel_edit_menu(self.ctx)
         await valide_intaraction(interaction)
@@ -837,4 +841,5 @@ async def config(ctx: discord.Interaction):
         await ctx.response.send_message(embed=discord.Embed(title="Chargement..."), ephemeral=True)
     embed=discord.Embed(title=":gear:  ClassBot EDT Config")
     embed.add_field(name="Info :", value=f"Auto EDT check : {launch_check_edt}")
+    embed.add_field(name="Info :", value=f"EDT otification : {'hide' if hide_edt else 'show'}")
     await ctx.edit_original_response(embed=embed, view=Config_view(ctx=ctx))
