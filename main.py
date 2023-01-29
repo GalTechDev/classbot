@@ -428,7 +428,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         week_end = True
 
     if corrupt and week_end:
-        await channel.send(f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`")
+        await ctx.response.send_message(content=f"\nURL générée invalide, voir sur le site, en attendant un Admin\n`Ceci est une ancienne version!`", ephemeral=True)
         # await channel.send("`URL générée invalide, contactez un Admin pour de l'aide`")
 
     elif corrupt:
@@ -467,11 +467,11 @@ async def edtpush(ctx):
 
 # ----------------------------------- EDT ----------------------------------
 class edt_view(discord.ui.View):
-    def __init__(self, key, plus, *, timeout=180) -> None:
+    def __init__(self, key, plus, ctx, *, timeout=180) -> None:
         super().__init__(timeout=timeout)
         self.key = key
         self.plus = plus
-
+        self.ctx = ctx
         indices = liscInfo[self.key]
         current_date = date.isocalendar(datetime.now())
         num_semaine = current_date[1]
@@ -500,6 +500,9 @@ class edt_view(discord.ui.View):
         await edt(interaction, cle_dico=self.key, plus=self.plus+1)
         #await interaction.response.send_message(content="ok", ephemeral=True)
 
+    async def timeout(self):
+        await self.ctx.edit_original_response(view=None)
+    
     def init_download(self):
         self.add_item(self.download)
 
@@ -622,7 +625,7 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
 
             if type(ctx) == discord.Interaction:
                 try:
-                    view = edt_view(key, plus)
+                    view = edt_view(key, plus, ctx)
                     view.init_download()
                     await ctx.response.send_message(embed=embed,file=file, ephemeral=hide_edt, view=view)
                 except Exception as error:
