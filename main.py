@@ -500,7 +500,7 @@ class edt_view(discord.ui.View):
         await edt(interaction, cle_dico=self.key, plus=self.plus+1)
         #await interaction.response.send_message(content="ok", ephemeral=True)
 
-    async def timeout(self):
+    async def on_timeout(self):
         await self.ctx.edit_original_response(view=None)
     
     def init_download(self):
