@@ -391,7 +391,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
             role = role.lower().replace(" ", "")
             if role in liscInfo.keys():
                 cle_dico = role
-                break
+                
     if cle_dico==None:
         await ctx.response.send_message(content="Vous n'avez pas de role assosié à votre classe, prenez en un ou précisez votre classe lors de la commande.", ephemeral=True)
         return
