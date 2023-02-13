@@ -681,7 +681,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
-@Lib.app.loop(seconds=1800)
+@Lib.app.loop(minutes=15)
 async def check_edt_lisc():
     try:
         #print(launch_check_edt)
