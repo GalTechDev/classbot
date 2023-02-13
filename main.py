@@ -676,24 +676,27 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 
 @Lib.app.loop(seconds=1800)
 async def check_edt_lisc():
+    try:
+        print(not launch_check_edt)
+        if not launch_check_edt:
+            return
 
-    if not launch_check_edt:
-        return
+        this_time = datetime.now()
+        database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
 
-    this_time = datetime.now()
-    database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
+        class_liste = [[stat[-2], _class, stat[-1]] for _class,stat in database[current_semester].items() if stat[-1]!=0]
 
-    class_liste = [[stat[-2], _class, stat[-1]] for _class,stat in database[current_semester].items() if stat[-1]!=0]
+        if not (6 <= this_time.hour <= 22):
+            return
 
-    if not (6 <= this_time.hour <= 22):
-        return
-
-    for i in range(len(class_liste)):
-        try:
-            await check_edt_update(*class_liste[i])
-        except Exception:
-            pass
-        await asyncio.sleep(30)
+        for i in range(len(class_liste)):
+            try:
+                await check_edt_update(*class_liste[i])
+            except Exception:
+                pass
+            await asyncio.sleep(30)
+    except Exception as error:
+        raise Exception(error)
 
 # -------------------------------------- EDT Config ---------------------------------
 
