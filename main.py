@@ -508,15 +508,16 @@ class edt_view(discord.ui.View):
 
 
 def compare_edt(pdf_name, indices: list = None, plus: int = 0):
+    #print("compare_edt")
     path_to_pdf = f"{edt_path}/{pdf_name}"
 
     try:
         poid_old = os.path.getsize(path_to_pdf)
     except Exception:
         poid_old = 0
-
+    #print("check_edt_info start")
     infos = check_edt_info(indices, plus)
-
+    #print("check_edt_info end")
     try:
         poid_new = int(infos["Content-Length"])
     except KeyError:
@@ -641,17 +642,22 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
 
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
-    check = compare_edt(pdf_name, dico_licence[cle_dico])
+    #print("check_edt_update start")
+    #print(dico_licence[current_semester])
+    check = compare_edt(pdf_name, dico_licence[current_semester][cle_dico])
     corrupt = False
-
+    
+    #print("check_edt_update point")
     if check == 0:
-        download_edt(pdf_name, dico_licence[cle_dico], decal=8 if cle_dico=="l1t7" else 0)
+        download_edt(pdf_name, dico_licence[current_semester][cle_dico], decal=8 if cle_dico=="l1t7" else 0)
 
     elif check in (2, 5, 6):
+        #print("check_edt_update end")
         return
 
     elif check in (3, 4):
         corrupt = True
+        #print("check_edt_update end")
         return
 
     servers = Lib.client.guilds
@@ -671,13 +677,14 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 
                 await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[cle_dico])
                 break
+    #print("check_edt_update end")
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
 @Lib.app.loop(seconds=1800)
 async def check_edt_lisc():
     try:
-        print(not launch_check_edt)
+        #print(launch_check_edt)
         if not launch_check_edt:
             return
 
@@ -690,12 +697,10 @@ async def check_edt_lisc():
             return
 
         for i in range(len(class_liste)):
-            try:
-                await check_edt_update(*class_liste[i])
-            except Exception:
-                pass
+            await check_edt_update(*class_liste[i])
             await asyncio.sleep(30)
     except Exception as error:
+        print("errors")
         raise Exception(error)
 
 # -------------------------------------- EDT Config ---------------------------------
