@@ -644,8 +644,6 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
         i += 1
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
-    #print("check_edt_update start")
-    #print(dico_licence[current_semester])
     check = compare_edt(pdf_name, dico_licence[current_semester][cle_dico])
     corrupt = False
     
@@ -670,9 +668,9 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
                 message = ""
                 if corrupt:
                     dev = discord.utils.get(server.roles, name="Bot Dev")
-                    message += f"Changement d'edt pour : {role.mention} (pdf corrompu, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`" # role.mention dev.mention
+                    message += f"Changement d'edt pour : {role.name} (pdf corrompu, voir sur le site, en attendant un {dev.name})\n`Ceci est une ancienne version!`" # role.mention dev.mention
                 else:
-                    message += f"Changement d'edt pour : {role.mention}"
+                    message += f"Changement d'edt pour : {role.name}"
 
                 await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[current_semester][cle_dico])
                 break
@@ -683,7 +681,6 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 async def check_edt_lisc():
     try:
         if not launch_check_edt:
-            print("returned")
             return
 
         this_time = datetime.now()
@@ -696,7 +693,7 @@ async def check_edt_lisc():
 
         for i in range(len(class_liste)):
             await check_edt_update(*class_liste[i], dico_licence=database)
-            await asyncio.sleep(10)
+            await asyncio.sleep(30)
     except Exception as error:
         print("errors")
         raise error
