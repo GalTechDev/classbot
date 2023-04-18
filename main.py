@@ -1,7 +1,6 @@
 # coding: utf-8
 from pdf2image import convert_from_path
 from datetime import datetime, date
-from pathlib import Path
 import asyncio
 import requests
 import os.path
@@ -354,7 +353,7 @@ async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
 
     await ctx.response.send_message(content="`EDT database successfully updated!`", ephemeral=True)
 
-
+@Lib.app.command(name="getdb", help_text="Envoie la bd")
 async def getdb(ctx):
     await ctx.send(file=discord.File(Lib.save.open(path=edt_database_path[0], name=edt_database_path[1]), "edt_database.json"))
 
@@ -509,10 +508,10 @@ class edt_view(discord.ui.View):
 
 def compare_edt(pdf_name, indices: list = None, plus: int = 0):
     #print("compare_edt")
-    path_to_pdf = f"{edt_path}/{pdf_name}"
+    path_to_pdf = (pdf_name,edt_path)
 
     try:
-        poid_old = os.path.getsize(path_to_pdf)
+        poid_old = os.path.getsize(Lib.save.get_full_path(*path_to_pdf))
     except Exception:
         poid_old = 0
     #print("check_edt_info start")
@@ -594,6 +593,7 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
     
     url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
     url = url_edt.format(indices[0], num_semaine - indices[2] + plus + decal, indices[1], num_semaine + plus, annee)
+
     edt_info = {}
 
     val = requests.head(url)
@@ -608,7 +608,10 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
 async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None):
     if not Lib.save.existe(path=edt_path, name=pdf_name):
         embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
-        await ctx.response.send_message(embed=embed, ephemeral=True)
+        if type(ctx) == discord.Interaction:
+            await ctx.response.send_message(embed=embed, ephemeral=True)
+        elif type(ctx) == discord.TextChannel:
+            await ctx.send(embed=embed)
         return
     edt_id = indices[0]
 
@@ -633,13 +636,12 @@ async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, 
                     print(error)
 
             else:
-                await ctx.send(embed=embed, files=file)
+                await ctx.send(embed=embed, file=file)
 
         else:
-            embed.description = f"({i}/{len(pages)})" 
+            embed.footer = f"({i}/{len(pages)})" 
             await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
         i += 1
-
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
     #print("check_edt_update start")
@@ -647,17 +649,14 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
     check = compare_edt(pdf_name, dico_licence[current_semester][cle_dico])
     corrupt = False
     
-    #print("check_edt_update point")
     if check == 0:
         download_edt(pdf_name, dico_licence[current_semester][cle_dico], decal=8 if cle_dico=="l1t7" else 0)
 
     elif check in (2, 5, 6):
-        #print("check_edt_update end")
         return
 
     elif check in (3, 4):
         corrupt = True
-        #print("check_edt_update end")
         return
 
     servers = Lib.client.guilds
@@ -671,13 +670,12 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
                 message = ""
                 if corrupt:
                     dev = discord.utils.get(server.roles, name="Bot Dev")
-                    message += f"Changement d'edt pour : {role.mention} (pdf corrompu, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`"
+                    message += f"Changement d'edt pour : {role.mention} (pdf corrompu, voir sur le site, en attendant un {dev.mention})\n`Ceci est une ancienne version!`" # role.mention dev.mention
                 else:
                     message += f"Changement d'edt pour : {role.mention}"
 
-                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[cle_dico])
+                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[current_semester][cle_dico])
                 break
-    #print("check_edt_update end")
 
 # -------------------------------------- EDT UPDATE ------------------------------
 
@@ -686,6 +684,7 @@ async def check_edt_lisc():
     try:
         #print(launch_check_edt)
         if not launch_check_edt:
+            print("returned")
             return
 
         this_time = datetime.now()
@@ -695,13 +694,15 @@ async def check_edt_lisc():
 
         if not (6 <= this_time.hour <= 22):
             return
+        
+        print("699")
 
         for i in range(len(class_liste)):
-            await check_edt_update(*class_liste[i])
-            await asyncio.sleep(30)
+            await check_edt_update(*class_liste[3], dico_licence=database)
+            await asyncio.sleep(10)
     except Exception as error:
         print("errors")
-        raise Exception(error)
+        raise error
 
 # -------------------------------------- EDT Config ---------------------------------
 
