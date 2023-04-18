@@ -682,7 +682,6 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 @Lib.app.loop(minutes=15)
 async def check_edt_lisc():
     try:
-        #print(launch_check_edt)
         if not launch_check_edt:
             print("returned")
             return
@@ -694,11 +693,9 @@ async def check_edt_lisc():
 
         if not (6 <= this_time.hour <= 22):
             return
-        
-        print("699")
 
         for i in range(len(class_liste)):
-            await check_edt_update(*class_liste[3], dico_licence=database)
+            await check_edt_update(*class_liste[i], dico_licence=database)
             await asyncio.sleep(10)
     except Exception as error:
         print("errors")
