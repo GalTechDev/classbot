@@ -625,7 +625,7 @@ async def send_edt_to_chat(ctx:discord.TextChannel, message:str, pdf_name: str, 
         file=(discord.File(file,f"edt{edt_id}_{i}.jpg"))
         embed.set_image(url=f"attachment://edt{edt_id}_{i}.jpg")
         if i==1:
-            embed.set_footer(f"({i}/{len(pages)})" if len(pages)>1 else None)
+            embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
 
             if type(ctx) == discord.Interaction:
                 try:
@@ -639,7 +639,7 @@ async def send_edt_to_chat(ctx:discord.TextChannel, message:str, pdf_name: str, 
                 await ctx.send(embed=embed, file=file)
 
         else:
-            embed.set_footer(f"({i}/{len(pages)})") 
+            embed.description = f"({i}/{len(pages)})"
             if type(ctx) == discord.Interaction:
                 await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
             else:
