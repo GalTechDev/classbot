@@ -377,7 +377,7 @@ async def pushdb(ctx):
 
     await ctx.send(f"File installed at : {edt_database_path}")
 
-@Lib.app.slash(name="edt", description="Envoie ton emploi du temps", force_name=True)
+@Lib.app.slash(name="edt", description="Envoie ton emploi du temps", direct_command=True)
 async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     #plus = plus.replace("+", "")
 
