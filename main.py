@@ -605,13 +605,13 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
     return edt_info
 
 
-async def send_edt_to_chat(ctx:discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None):
+async def send_edt_to_chat(ctx:discord.TextChannel, message:str, pdf_name: str, key:str, plus:int, indices: list = None, mention = None):
     if not Lib.save.existe(path=edt_path, name=pdf_name):
         embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
         if type(ctx) == discord.Interaction:
-            await ctx.response.send_message(embed=embed, ephemeral=True)
+            await ctx.response.send_message(content=mention , embed=embed, ephemeral=True)
         elif type(ctx) == discord.TextChannel:
-            await ctx.send(embed=embed)
+            await ctx.send(content=mention, embed=embed)
         return
     edt_id = indices[0]
 
@@ -672,7 +672,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
                 else:
                     message += f"Changement d'edt pour : {role.name}"
 
-                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[current_semester][cle_dico])
+                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[current_semester][cle_dico], role.mention)
                 break
 
 # -------------------------------------- EDT UPDATE ------------------------------
