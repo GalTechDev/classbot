@@ -1,6 +1,5 @@
 # coding: utf-8
 from pdf2image import convert_from_path
-from datetime import datetime, date
 import asyncio
 import requests
 import os.path
@@ -9,8 +8,9 @@ import time
 import sys
 import discord
 from system.lib import *
+from datetime import datetime, date
 
-Lib = Lib_UsOS()
+Lib = App()
 
 app_version = "4.0.2"
 classbot_folder = f"classbot_folder"
@@ -698,7 +698,7 @@ async def check_edt_lisc():
             await check_edt_update(*class_liste[i], dico_licence=database)
             await asyncio.sleep(30)
     except Exception as error:
-        print("errors")
+        print(f" * Error in check_edt_lisc : {error}")
         raise error
 
 # -------------------------------------- EDT Config ---------------------------------
