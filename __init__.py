@@ -9,6 +9,7 @@ import sys
 import discord
 from system.lib import *
 from datetime import datetime, date
+from discord.ext import commands as discord_commands
 
 Lib = App()
 
@@ -26,130 +27,43 @@ vals = [classbot_folder, edt_path]
 
 launch_check_edt = True
 hide_edt = False
+ready = False
 current_semester = "infoS1"
 
-liscInfo = {
-    "infoS1": {
-        "l1t7": [
-            0,
-            0,
-            0,
-            "l1t7.pdf",
-            0
-        ],
-        "l1t5": [
-            0,
-            0,
-            0,
-            "l1t5.pdf",
-            0
-        ],
-        "l2t7": [
-            0,
-            0,
-            0,
-            "l2t7.pdf",
-            0
-        ],
-        "l2t5": [
-            0,
-            0,
-            0,
-            "l2t5.pdf",
-            0
-        ],
-        "l3t7": [
-            0,
-            0,
-            0,
-            "l3t7.pdf",
-            0
-        ],
-        "l3t5": [
-            0,
-            0,
-            0,
-            "l3t5.pdf",
-            0
-        ],
-        "l4t7": [
-            0,
-            0,
-            0,
-            "l4t7.pdf",
-            0
-        ],
-        "l3t7miage": [
-            0,
-            0,
-            0,
-            "l3t7miage.pdf",
-            0
-        ],
-        "l4t7miage": [
-            0,
-            0,
-            0,
-            "l4t7miage.pdf",
-            0
-        ]
-    },
-    "infoS2": {
-        "l1t7": [
-            0,
-            0,
-            0,
-            "l1t7.pdf",
-            0
-        ],
-        "l1t5": [
-            0,
-            0,
-            0,
-            "l1t5.pdf",
-            0
-        ],
-        "l2t7": [
-            0,
-            0,
-            0,
-            "l2t7.pdf",
-            0
-        ],
-        "l2t5": [
-            0,
-            0,
-            0,
-            "l2t5.pdf",
-            0
-        ],
-        "l3t7": [
-            0,
-            0,
-            0,
-            "l3t7.pdf",
-            0
-        ],
-        "l3t5": [
-            0,
-            0,
-            0,
-            "l3t5.pdf",
-            0
-        ],
-        "l3t7miage": [
-            0,
-            0,
-            0,
-            "l3t7miage.pdf",
-            0
-        ]
-    }
-}
+lisc = ["Anglais-Espagnol", "Anglais-Japonais", "Lettres", "LLCER Anglais", "LLCER LCO", "Droit", "Eco Gestion Koné", "Eco Gestion Nouméa", "Géo et Aménagement", "Histoire", "Info", "Math", "Physique Chimie", "SVT"]
+new_lisc = []
+list_trec = ["L1T5", "L1T7", "L2T5", "L2T7", "L3T5", "L3T7", "L4T7"]
+for name in lisc:
+    for trec in ["T5", "T7"]:
+        if trec == "T5":
+            if name in ["Math", "Physique Chimie"]:
+                for i in range(1,4):
+                    new_lisc.append(f"{name} L{i}{trec} CUPGE")
+                    list_trec.append(f"L{i}{trec} CUPGE")
+            
+            if name in ["SVT", "Physique Chimie"]:
+                for i in range(1,4):
+                    new_lisc.append(f"{name} L{i}{trec} LAS")
+                    list_trec.append(f"L{i}{trec} LAS")
+
+            for i in range(1,4):
+                new_lisc.append(f"{name} L{i}{trec}")
+                
+        else:
+            if name == "SVT LAS":
+                break
+            for i in range(1,5):
+                if i in [3,4] and name == "Info":
+                    new_lisc.append(f"{name} L{i}{trec} MIAGE")
+                    list_trec.append(f"L{i}{trec} MIAGE")
+                new_lisc.append(f"{name} L{i}{trec}")
+                
+
+liscInfo = {"S1":{name:[0,0,0,name+".pdf",0] for name in new_lisc}, "S2":{name:[0,0,0,name+".pdf",0] for name in new_lisc}}
 
 @Lib.event.event()
 async def on_ready():
-    global bot_config, launch_check_edt, current_semester, liscInfo, hide_edt
+    global bot_config, launch_check_edt, current_semester, liscInfo, hide_edt, ready
     for name in vals:
         Lib.save.add_folder(name)
     
@@ -170,6 +84,8 @@ async def on_ready():
     except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
         Lib.save.add_file(path=edt_database_path[0], name=edt_database_path[1], over_write=True)
         Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(liscInfo))
+        
+    ready = True
     
 
 def get_config():
@@ -354,8 +270,8 @@ async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
     await ctx.response.send_message(content="`EDT database successfully updated!`", ephemeral=True)
 
 @Lib.app.command(name="getdb", help_text="Envoie la bd")
-async def getdb(ctx):
-    await ctx.send(file=discord.File(Lib.save.open(path=edt_database_path[0], name=edt_database_path[1]), "edt_database.json"))
+async def getdb(ctx:discord_commands.context.Context):
+    await ctx.send(file=discord.File(Lib.save.get_full_path(path=edt_database_path[0], name=edt_database_path[1]), "edt_database.json"))
 
 
 async def pushdb(ctx):
@@ -441,6 +357,31 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     except Exception as error:
         print(error)
 
+#@Lib.app.slash(name="gen-role", description="create all the needed role")
+async def gen_role(ctx: discord.Interaction):
+    await valide_intaraction(ctx)
+    guild = ctx.guild
+    roles = [role.name for role in guild.roles]
+    for role in new_lisc:
+        if role not in roles:
+            await guild.create_role(name=role)
+            print(f"Role : {role} added")
+        else:
+            print(f"Role : {role} found")
+
+    for role in lisc:
+        if role not in roles:
+            await guild.create_role(name=role)
+            print(f"Role : {role} added")
+        else:
+            print(f"Role : {role} found")
+
+    for role in list_trec:
+        if role not in roles:
+            await guild.create_role(name=role)
+            print(f"Role : {role} added")
+        else:
+            print(f"Role : {role} found")
 
 
 async def edtpush(ctx):
@@ -679,11 +620,58 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
                 break
 
 # -------------------------------------- EDT UPDATE ------------------------------
+@Lib.event.event()
+async def on_member_update(before, after):
+    if ready:
+        guild = Lib.client.get_guild(550450730192994306) 
+        founded_role = []
+        for role_name in lisc:
+            role = discord.utils.get(guild.roles, name=role_name)
+            if role in after.roles:
+                for trec_name in list_trec:
+                    trec_role = discord.utils.get(guild.roles, name=trec_name)
+                    if trec_role in after.roles:
+                        complet_role_name = f"{role_name} {trec_name}"
+                        complet_role = discord.utils.get(guild.roles, name=complet_role_name)
+                        if complet_role not in after.roles:
+                            await after.add_roles(complet_role)
+                            founded_role.append(complet_role_name)
+                        else:
+                            founded_role.append(complet_role_name)
+
+        for role in after.roles:
+            if role.name in new_lisc and not (role.name in founded_role):
+                await after.remove_roles(role)
+
+@Lib.app.loop(minutes=5)
+async def check_role():
+    if ready:
+        guild = Lib.client.get_guild(550450730192994306)  
+
+        for member in guild.members:
+            founded_role = []
+            for role_name in lisc:
+                role = discord.utils.get(guild.roles, name=role_name)
+                if role in member.roles:
+                    for trec_name in list_trec:
+                        trec_role = discord.utils.get(guild.roles, name=trec_name)
+                        if trec_role in member.roles:
+                            complet_role_name = f"{role_name} {trec_name}"
+                            complet_role = discord.utils.get(guild.roles, name=complet_role_name)
+                            await member.add_roles(complet_role)
+                            founded_role.append(complet_role)
+                            print(f"{complet_role} added")
+                        else:
+                            founded_role.append(complet_role_name)
+            
+            for role in member.roles:
+                if role.name in new_lisc and not (role.name in founded_role):
+                    await member.remove_roles(role)
 
 @Lib.app.loop(minutes=15)
 async def check_edt_lisc():
     try:
-        if not launch_check_edt:
+        if not launch_check_edt or not ready:
             return
 
         this_time = datetime.now()
@@ -724,17 +712,18 @@ class Uptedt_view(discord.ui.View):
         async def callback(self, interaction: discord.Interaction) -> Any:
             await interaction.response.send_modal(Uptedt_modal(view=self.per_view, title="URL"))
 
-    class Class_select(discord.ui.Select):
+    class Class_select(discord.ui.RoleSelect):
         def __init__(self, *, view, custom_id: str = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, options: List[discord.SelectOption] = MISSING, disabled: bool = False, row: Optional[int] = None) -> None:
             self.per_view = view
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
-            keys = database[current_semester].keys()
-            options = [discord.SelectOption(label=key, default=True if self.per_view._class == key else False) for key in keys]
+            self.keys = database[current_semester].keys()
+            #options = [discord.SelectOption(label=key, default=True if self.per_view._class == key else False) for key in keys]
             super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=options, disabled=disabled, row=row)
 
         async def callback(self, interaction: discord.Interaction) -> Any:
-            await updtedt_menu(self.per_view.ctx, self.per_view.url, self.values[0])
-            await valide_intaraction(interaction)
+            if self.values[0].name in list(self.keys):
+                await updtedt_menu(self.per_view.ctx, self.per_view.url, self.values[0].name)
+                await valide_intaraction(interaction)
 
     class Valide_button(discord.ui.Button):
         def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
@@ -763,17 +752,18 @@ class EditChannel_view(discord.ui.View):
             await config(self.ctx)
             await valide_intaraction(interaction)
 
-    class ClassSelect(discord.ui.Select):
+    class ClassSelect(discord.ui.RoleSelect):
         def __init__(self, *, ctx: discord.Interaction, _class=None, custom_id: str = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, options: List[discord.SelectOption] = MISSING, disabled: bool = False, row: Optional[int] = None) -> None:
             self.ctx = ctx
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
-            keys = database[current_semester].keys()
-            options = [discord.SelectOption(label=key, default=(key ==_class)) for key in keys]
-            super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=options, disabled=disabled, row=row)
+            self.keys = database[current_semester].keys()
+            #options = [discord.SelectOption(label=key, default=(key ==_class)) for key in keys]
+            super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled, row=row)
 
         async def callback(self, interaction: discord.Interaction) -> Any:
-            await channel_edit_menu(self.ctx, self.values[0])
-            await valide_intaraction(interaction)
+            if self.values[0].name in list(self.keys):
+                await channel_edit_menu(self.ctx, self.values[0].name)
+                await valide_intaraction(interaction)
 
     class ChannelSelect(discord.ui.ChannelSelect):
         def __init__(self, *, ctx: discord.Interaction, _class, custom_id: str = MISSING, channel_types: List[discord.ChannelType] = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, disabled: bool = False, row: Optional[int] = None) -> None:
