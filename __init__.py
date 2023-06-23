@@ -28,7 +28,7 @@ vals = [classbot_folder, edt_path]
 launch_check_edt = True
 hide_edt = False
 ready = False
-current_semester = "infoS1"
+current_semester = "S2"
 
 lisc = ["Anglais-Espagnol", "Anglais-Japonais", "Lettres", "LLCER Anglais", "LLCER LCO", "Droit", "Eco Gestion Koné", "Eco Gestion Nouméa", "Géo et Aménagement", "Histoire", "Info", "Math", "Physique Chimie", "SVT"]
 new_lisc = []
@@ -77,7 +77,7 @@ async def on_ready():
         Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
 
 
-    current_semester = "infoS1"
+    current_semester = "S2"
     try:
         liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
         
@@ -302,8 +302,8 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     if cle_dico==None:
         member = ctx.user
         roles = [role.name for role in member.roles]
+        
         for role in roles:
-            role = role.lower().replace(" ", "")
             if role in liscInfo.keys():
                 cle_dico = role
                 
@@ -546,19 +546,19 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
     return edt_info
 
 
-async def send_edt_to_chat(ctx:discord.TextChannel, message:str, pdf_name: str, key:str, plus:int, indices: list = None, mention = None):
+async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None, mention = None):
+    
     if not Lib.save.existe(path=edt_path, name=pdf_name):
         embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
         if type(ctx) == discord.Interaction:
-            await ctx.response.send_message(content=mention , embed=embed, ephemeral=True)
+            await ctx.response.send_message(content=f"||{mention}||" , embed=embed, ephemeral=True)
         elif type(ctx) == discord.TextChannel:
-            await ctx.send(content=mention, embed=embed)
+            await ctx.send(content=f"||{mention}||", embed=embed)
         return
     edt_id = indices[0]
 
     pages = convert_from_path(Lib.save.get_full_path(name=pdf_name, path=edt_path), 150)
     i = 1
-    
     for page in pages:
         embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())
         file = Lib.save.get_full_path(name=f"edt{edt_id}_{i}.jpg", path=edt_path)
@@ -567,7 +567,6 @@ async def send_edt_to_chat(ctx:discord.TextChannel, message:str, pdf_name: str, 
         embed.set_image(url=f"attachment://edt{edt_id}_{i}.jpg")
         if i==1:
             embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
-
             if type(ctx) == discord.Interaction:
                 try:
                     view = edt_view(key, plus, ctx)
@@ -718,7 +717,7 @@ class Uptedt_view(discord.ui.View):
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
             self.keys = database[current_semester].keys()
             #options = [discord.SelectOption(label=key, default=True if self.per_view._class == key else False) for key in keys]
-            super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=options, disabled=disabled, row=row)
+            super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled, row=row)
 
         async def callback(self, interaction: discord.Interaction) -> Any:
             if self.values[0].name in list(self.keys):
@@ -773,7 +772,7 @@ class EditChannel_view(discord.ui.View):
 
         async def callback(self, interaction: discord.Interaction) -> Any:
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
-            for semestre in ["infoS1","infoS2"]:
+            for semestre in ["S1","S2"]:
                 if self._class in database[semestre].keys():
                     database[semestre][self._class][-1]=self.values[0].id
                     Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(database))
