@@ -318,7 +318,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         plus = 0
 
     corrupt = False
-    infos = check_edt_info(liscInfo[cle_dico], plus, 8 if cle_dico=="l1t7"else 0)
+    infos = check_edt_info(liscInfo[cle_dico], plus, decal=4 if cle_dico=="Info L3T7"else 0)
     try:
         size = int(infos["Content-Length"])
     except KeyError:
@@ -330,7 +330,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         corrupt = True
         print("pass")
     else:
-        download_edt(pdf_name, liscInfo[cle_dico], plus, decal=8 if cle_dico=="l1t7" else 0)
+        download_edt(pdf_name, liscInfo[cle_dico], plus, decal=4 if cle_dico=="Info L3T7"else 0)
     channel = ctx.channel
 
     message = f"EDT pour : {cle_dico.upper()}"
@@ -422,7 +422,7 @@ class edt_view(discord.ui.View):
 
         while num_semaine-indices[2] < 0:
             num_semaine += 1
-        url_edt = f"http://applis.univ-nc.nc/gedfs/edtweb2/{indices[0]}.{num_semaine - indices[2] + self.plus}/PDF_EDT_{indices[1]}_{num_semaine + self.plus}_{annee}.pdf"
+        url_edt = f"http://applis.univ-nc.nc/gedfs/edtweb2/{indices[0]}.{num_semaine - indices[2] + self.plus + 4 if key=='Info L3T7' else 0}/PDF_EDT_{indices[1]}_{num_semaine + self.plus}_{annee}.pdf"
         self.download = discord.ui.Button(label="Download", url=url_edt)
 
     @discord.ui.button(style=discord.ButtonStyle.gray, emoji="\U00002b05")
