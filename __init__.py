@@ -551,9 +551,9 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
     if not Lib.save.existe(path=edt_path, name=pdf_name):
         embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
         if type(ctx) == discord.Interaction:
-            await ctx.response.send_message(content=f"||{mention}||" , embed=embed, ephemeral=True)
+            await ctx.response.send_message(embed=embed, ephemeral=True)
         elif type(ctx) == discord.TextChannel:
-            await ctx.send(content=f"||{mention}||", embed=embed)
+            await ctx.send(embed=embed)
         return
     edt_id = indices[0]
 
@@ -576,14 +576,17 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
                     print(error)
 
             else:
-                await ctx.send(embed=embed, file=file)
+                msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
+                msg.publish()
 
         else:
             embed.description = f"({i}/{len(pages)})"
             if type(ctx) == discord.Interaction:
                 await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
             else:
-                await ctx.send(embed=embed, file=file)
+                msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
+                msg.publish()
+                
         i += 1
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
