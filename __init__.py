@@ -577,7 +577,7 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
 
             else:
                 msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
-                msg.publish()
+                await msg.publish()
 
         else:
             embed.description = f"({i}/{len(pages)})"
@@ -585,7 +585,7 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
                 await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
             else:
                 msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
-                msg.publish()
+                await msg.publish()
                 
         i += 1
 
@@ -609,14 +609,14 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
         chat = server.text_channels
         for channel in chat:
             if chat_id == channel.id:
-                formated_role = cle_dico.upper().replace("MIAGE", " miage")
-                role = discord.utils.get(server.roles, name=formated_role)
+                role = discord.utils.get(server.roles, name=cle_dico)
+                print(role, server.roles, cle_dico)
                 message = ""
                 if corrupt:
                     dev = discord.utils.get(server.roles, name="Bot Dev")
-                    message += f"Changement d'edt pour : {role.name} (pdf corrompu, voir sur le site, en attendant un {dev.name})\n`Ceci est une ancienne version!`" # role.mention dev.mention
+                    message += f"Changement d'edt pour : {cle_dico} (pdf corrompu, voir sur le site, en attendant un {dev.name})\n`Ceci est une ancienne version!`" # role.mention dev.mention
                 else:
-                    message += f"Changement d'edt pour : {role.name}"
+                    message += f"Changement d'edt pour : {cle_dico}"
 
                 await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[current_semester][cle_dico], role.mention)
                 break
@@ -645,7 +645,7 @@ async def on_member_update(before, after):
             if role.name in new_lisc and not (role.name in founded_role):
                 await after.remove_roles(role)
 
-@Lib.app.loop(minutes=5)
+@Lib.app.loop(minutes=15)
 async def check_role():
     if ready:
         guild = Lib.client.get_guild(550450730192994306)  
@@ -660,9 +660,10 @@ async def check_role():
                         if trec_role in member.roles:
                             complet_role_name = f"{role_name} {trec_name}"
                             complet_role = discord.utils.get(guild.roles, name=complet_role_name)
-                            await member.add_roles(complet_role)
+                            if not complet_role in member.roles:
+                                await member.add_roles(complet_role)
+                                print(f" * Roles check : {complet_role} added to {member.name}")
                             founded_role.append(complet_role)
-                            print(f"{complet_role} added")
                         else:
                             founded_role.append(complet_role_name)
             
@@ -670,7 +671,7 @@ async def check_role():
                 if role.name in new_lisc and not (role.name in founded_role):
                     await member.remove_roles(role)
 
-@Lib.app.loop(minutes=15)
+@Lib.app.loop(minutes=5)
 async def check_edt_lisc():
     try:
         if not launch_check_edt or not ready:
@@ -685,6 +686,7 @@ async def check_edt_lisc():
             return
 
         for i in range(len(class_liste)):
+            print(f" * EDT check : {class_liste[i]}")
             await check_edt_update(*class_liste[i], dico_licence=database)
             await asyncio.sleep(30)
     except Exception as error:
