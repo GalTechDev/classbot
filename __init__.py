@@ -324,13 +324,13 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
     except KeyError:
         size = 0
     status = int(infos["status"])
-
+    decal = 4 if cle_dico=="Info L3T7" else 0
     if (size < 500) or (status != 200):
         pdf_name = f"{cle_dico}.pdf"
         corrupt = True
         print("pass")
     else:
-        download_edt(pdf_name, liscInfo[cle_dico], plus, decal=4 if cle_dico=="Info L3T7"else 0)
+        download_edt(pdf_name, liscInfo[cle_dico], plus, decal=decal)
     channel = ctx.channel
 
     message = f"EDT pour : {cle_dico.upper()}"
@@ -353,7 +353,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         pass
     
     try:
-        await send_edt_to_chat(ctx, message, pdf_name, cle_dico, plus, liscInfo[cle_dico])
+        await send_edt_to_chat(ctx, message, pdf_name, cle_dico, plus, decal, liscInfo[cle_dico])
     except Exception as error:
         print(error)
 
@@ -407,7 +407,7 @@ async def edtpush(ctx):
 
 # ----------------------------------- EDT ----------------------------------
 class edt_view(discord.ui.View):
-    def __init__(self, key, plus, ctx, *, timeout=180) -> None:
+    def __init__(self, key, plus, decal, ctx, *, timeout=180) -> None:
         super().__init__(timeout=timeout)
         self.key = key
         self.plus = plus
@@ -422,8 +422,11 @@ class edt_view(discord.ui.View):
 
         while num_semaine-indices[2] < 0:
             num_semaine += 1
-        url_edt = f"http://applis.univ-nc.nc/gedfs/edtweb2/{indices[0]}.{num_semaine - indices[2] + self.plus + 4 if key=='Info L3T7' else 0}/PDF_EDT_{indices[1]}_{num_semaine + self.plus}_{annee}.pdf"
-        self.download = discord.ui.Button(label="Download", url=url_edt)
+        
+        url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
+        url = url_edt.format(indices[0], num_semaine - indices[2] + plus + decal, indices[1], num_semaine + plus, annee)
+        
+        self.download = discord.ui.Button(label="Download", url=url)
 
     @discord.ui.button(style=discord.ButtonStyle.gray, emoji="\U00002b05")
     async def prev_button(self, interaction:discord.Interaction, button:discord.ui.Button):
@@ -546,7 +549,7 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
     return edt_info
 
 
-async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, message:str, pdf_name: str, key:str, plus:int, indices: list = None, mention = None):
+async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, message:str, pdf_name: str, key:str, plus:int, decal, indices: list = None, mention = None):
     
     if not Lib.save.existe(path=edt_path, name=pdf_name):
         embed = discord.Embed(title=message, description=f"Aucun EDT disponible", color=discord.Color.yellow())
@@ -569,7 +572,7 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
             embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
             if type(ctx) == discord.Interaction:
                 try:
-                    view = edt_view(key, plus, ctx)
+                    view = edt_view(key, plus, decal, ctx)
                     view.init_download()
                     await ctx.response.send_message(embed=embed,file=file, ephemeral=hide_edt, view=view)
                 except Exception as error:
@@ -592,9 +595,9 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
     check = compare_edt(pdf_name, dico_licence[current_semester][cle_dico])
     corrupt = False
-    
+    decal = 4 if cle_dico=="Info L3T7" else 0
     if check == 0:
-        download_edt(pdf_name, dico_licence[current_semester][cle_dico], decal=8 if cle_dico=="l1t7" else 0)
+        download_edt(pdf_name, dico_licence[current_semester][cle_dico], decal=decal)
 
     elif check in (2, 5, 6):
         return
@@ -618,7 +621,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
                 else:
                     message += f"Changement d'edt pour : {cle_dico}"
 
-                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, dico_licence[current_semester][cle_dico], role.mention)
+                await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, decal, dico_licence[current_semester][cle_dico], role.mention)
                 break
 
 # -------------------------------------- EDT UPDATE ------------------------------
