@@ -89,7 +89,7 @@ async def on_ready():
             
         decal = data.get("decal")
         if semester == None:
-            data.update({"decal":"S1"})
+            data.update({"decal": decal_dico})
             Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(data))
         else:
             decal_dico = decal
