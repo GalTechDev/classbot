@@ -7,11 +7,11 @@ import json
 import time
 import sys
 import discord
-from system.lib import *
+from understar.system import lib
 from datetime import datetime, date
 from discord.ext import commands as discord_commands
 
-Lib = App()
+Lib = lib.App()
 
 app_version = "4.0.2"
 classbot_folder = f"classbot_folder"
@@ -61,11 +61,11 @@ for name in lisc:
                 new_lisc.append(f"{name} L{i}{trec}")
                 
 
-liscInfo = {"S1":{name:[0,0,0,name+".pdf",0] for name in new_lisc}, "S2":{name:[0,0,0,name+".pdf",0] for name in new_lisc}}
+liscInfo = {"S1":{name:[0,0,0,name+".pdf",0] for name in new_lisc}, "S2":{name:[0,0,0,name+".pdf",0] for name in new_lisc}, "decal":{}, "current_semester":"S1"}
 
 @Lib.event.event()
 async def on_ready():
-    global bot_config, launch_check_edt, current_semester, liscInfo, hide_edt, ready
+    global bot_config, launch_check_edt, current_semester, liscInfo, hide_edt, ready, decal_dico
     for name in vals:
         Lib.save.add_folder(name)
     
@@ -78,10 +78,24 @@ async def on_ready():
         Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
         Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
 
-
-    current_semester = "S2"
     try:
-        liscInfo = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))[current_semester]
+        data: dict = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
+        semester = data.get("current_semester")
+        if semester == None:
+            data.update({"current_semester":"S1"})
+            Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(data))
+        else:
+            current_semester = semester
+            
+        decal = data.get("decal")
+        if semester == None:
+            data.update({"decal":"S1"})
+            Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(data))
+        else:
+            decal_dico = decal
+            
+        liscInfo = data.get(current_semester)
+        
         
     except (FileNotFoundError, KeyError, json.decoder.JSONDecodeError):
         Lib.save.add_file(path=edt_database_path[0], name=edt_database_path[1], over_write=True)
@@ -233,7 +247,7 @@ async def sedt(ctx:discord.Interaction, auto_check=launch_check_edt, hide = hide
     #Lib.save.add_file(path=classbot_config_file[0], name=classbot_config_file[1])
     Lib.save.write(path=classbot_config_file[0], name=classbot_config_file[1], data=json.dumps(get_config(), indent=4))
     
-    await valide_intaraction(ctx)
+    await lib.lib.valide_intaraction(ctx)
     #await ctx.channel.send(f"check edt set on : {val}")
 
 #@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
@@ -361,7 +375,7 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
 
 #@Lib.app.slash(name="gen-role", description="create all the needed role")
 async def gen_role(ctx: discord.Interaction):
-    await valide_intaraction(ctx)
+    await lib.lib.valide_intaraction(ctx)
     guild = ctx.guild
     roles = [role.name for role in guild.roles]
     for role in new_lisc:
@@ -704,7 +718,7 @@ async def check_edt_lisc():
 # ----------------------------------------- View ------------------------------------
 
 class Uptedt_view(discord.ui.View):
-    def __init__(self, *, ctx: discord.Interaction, url="", _class=None, timeout: Optional[float] = 180):
+    def __init__(self, *, ctx: discord.Interaction, url="", _class=None, timeout: lib.Optional[float] = 180):
         super().__init__(timeout=timeout)
         self.ctx = ctx
         self.url = url
@@ -715,37 +729,37 @@ class Uptedt_view(discord.ui.View):
         self.add_item(self.Valide_button(view=self, label="Valider", style=discord.ButtonStyle.blurple, disabled=(self.url=="" or self._class==None)))
 
     class Url_button(discord.ui.Button):
-        def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
+        def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: lib.Optional[str] = None, disabled: bool = False, custom_id: lib.Optional[str] = None, url: lib.Optional[str] = None, emoji: lib.Optional[lib.Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: lib.Optional[int] = None):
             super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, url=url, emoji=emoji, row=row)
             self.per_view = view
 
-        async def callback(self, interaction: discord.Interaction) -> Any:
+        async def callback(self, interaction: discord.Interaction) -> lib.Any:
             await interaction.response.send_modal(Uptedt_modal(view=self.per_view, title="URL"))
 
     class Class_select(discord.ui.RoleSelect):
-        def __init__(self, *, view, custom_id: str = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, options: List[discord.SelectOption] = MISSING, disabled: bool = False, row: Optional[int] = None) -> None:
+        def __init__(self, *, view, custom_id: str = lib.MISSING, placeholder: lib.Optional[str] = None, min_values: int = 1, max_values: int = 1, options: lib.List[discord.SelectOption] = lib.MISSING, disabled: bool = False, row: lib.Optional[int] = None) -> None:
             self.per_view = view
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
             self.keys = database[current_semester].keys()
             #options = [discord.SelectOption(label=key, default=True if self.per_view._class == key else False) for key in keys]
             super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled, row=row)
 
-        async def callback(self, interaction: discord.Interaction) -> Any:
+        async def callback(self, interaction: discord.Interaction) -> lib.Any:
             if self.values[0].name in list(self.keys):
                 await updtedt_menu(self.per_view.ctx, self.per_view.url, self.values[0].name)
-                await valide_intaraction(interaction)
+                await lib.valide_intaraction(interaction)
 
     class Valide_button(discord.ui.Button):
-        def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
+        def __init__(self, *, view, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: lib.Optional[str] = None, disabled: bool = False, custom_id: lib.Optional[str] = None, url: lib.Optional[str] = None, emoji: lib.Optional[lib.Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: lib.Optional[int] = None):
             super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, url=url, emoji=emoji, row=row)
             self.edt_url = view.url
             self._class = view._class
 
-        async def callback(self, interaction: discord.Interaction) -> Any:
+        async def callback(self, interaction: discord.Interaction) -> lib.Any:
             await uptedt(interaction, self.edt_url, self._class)
 
 class EditChannel_view(discord.ui.View):
-    def __init__(self, *, ctx: discord.Interaction, _class=None, timeout: Optional[float] = 180):
+    def __init__(self, *, ctx: discord.Interaction, _class=None, timeout: lib.Optional[float] = 180):
         super().__init__(timeout=timeout)
         self.ctx=ctx
         self.add_item(self.Back_button(ctx=self.ctx, label="Back"))
@@ -754,51 +768,51 @@ class EditChannel_view(discord.ui.View):
             self.add_item(self.ChannelSelect(ctx=self.ctx, _class=_class, placeholder="Choisir un channel"))
 
     class Back_button(discord.ui.Button):
-        def __init__(self, *, ctx: discord.Interaction, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: Optional[str] = None, disabled: bool = False, custom_id: Optional[str] = None, url: Optional[str] = None, emoji: Optional[Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: Optional[int] = None):
+        def __init__(self, *, ctx: discord.Interaction, style: discord.ButtonStyle = discord.ButtonStyle.secondary, label: lib.Optional[str] = None, disabled: bool = False, custom_id: lib.Optional[str] = None, url: lib.Optional[str] = None, emoji: lib.Optional[lib.Union[str, discord.Emoji, discord.PartialEmoji]] = None, row: lib.Optional[int] = None):
             super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, url=url, emoji=emoji, row=row)
             self.ctx=ctx
 
-        async def callback(self, interaction: discord.Interaction) -> Any:
+        async def callback(self, interaction: discord.Interaction) -> lib.Any:
             await config(self.ctx)
-            await valide_intaraction(interaction)
+            await lib.valide_intaraction(interaction)
 
     class ClassSelect(discord.ui.RoleSelect):
-        def __init__(self, *, ctx: discord.Interaction, _class=None, custom_id: str = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, options: List[discord.SelectOption] = MISSING, disabled: bool = False, row: Optional[int] = None) -> None:
+        def __init__(self, *, ctx: discord.Interaction, _class=None, custom_id: str = lib.MISSING, placeholder: lib.Optional[str] = None, min_values: int = 1, max_values: int = 1, options: lib.List[discord.SelectOption] = lib.MISSING, disabled: bool = False, row: lib.Optional[int] = None) -> None:
             self.ctx = ctx
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
             self.keys = database[current_semester].keys()
             #options = [discord.SelectOption(label=key, default=(key ==_class)) for key in keys]
             super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled, row=row)
 
-        async def callback(self, interaction: discord.Interaction) -> Any:
+        async def callback(self, interaction: discord.Interaction) -> lib.Any:
             if self.values[0].name in list(self.keys):
                 await channel_edit_menu(self.ctx, self.values[0].name)
-                await valide_intaraction(interaction)
+                await lib.valide_intaraction(interaction)
 
     class ChannelSelect(discord.ui.ChannelSelect):
-        def __init__(self, *, ctx: discord.Interaction, _class, custom_id: str = MISSING, channel_types: List[discord.ChannelType] = MISSING, placeholder: Optional[str] = None, min_values: int = 1, max_values: int = 1, disabled: bool = False, row: Optional[int] = None) -> None:
+        def __init__(self, *, ctx: discord.Interaction, _class, custom_id: str = lib.MISSING, channel_types: lib.List[discord.ChannelType] = lib.MISSING, placeholder: lib.Optional[str] = None, min_values: int = 1, max_values: int = 1, disabled: bool = False, row: lib.Optional[int] = None) -> None:
             super().__init__(custom_id=custom_id, channel_types=channel_types, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled, row=row)
             self.ctx = ctx
             self._class = _class
 
-        async def callback(self, interaction: discord.Interaction) -> Any:
+        async def callback(self, interaction: discord.Interaction) -> lib.Any:
             database = json.loads(Lib.save.read(path=edt_database_path[0], name=edt_database_path[1]))
             for semestre in ["S1","S2"]:
                 if self._class in database[semestre].keys():
                     database[semestre][self._class][-1]=self.values[0].id
                     Lib.save.write(path=edt_database_path[0], name=edt_database_path[1], data=json.dumps(database))
                     await channel_edit_menu(self.ctx)                     
-                    await valide_intaraction(interaction)
+                    await lib.valide_intaraction(interaction)
 
 class Config_view(discord.ui.View):
-    def __init__(self, *, ctx: discord.Interaction, timeout: Optional[float] = 180):
+    def __init__(self, *, ctx: discord.Interaction, timeout: lib.Optional[float] = 180):
         super().__init__(timeout=timeout)
         self.ctx=ctx
 
     @discord.ui.button(label="Update EDT",style=discord.ButtonStyle.gray)
     async def uptedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await updtedt_menu(self.ctx)
-        await valide_intaraction(interaction)
+        await lib.valide_intaraction(interaction)
 
     @discord.ui.button(label="Auto EDT Check",style=discord.ButtonStyle.gray)
     async def sedt_button(self, interaction:discord.Interaction, button:discord.ui.Button):
@@ -813,12 +827,12 @@ class Config_view(discord.ui.View):
     @discord.ui.button(label="EDT Notification",style=discord.ButtonStyle.gray)
     async def channel_edit_button(self, interaction:discord.Interaction, button:discord.ui.Button):
         await channel_edit_menu(self.ctx)
-        await valide_intaraction(interaction)
+        await lib.valide_intaraction(interaction)
 
 # ----------------------------------------- Modal -----------------------------------
 
 class Uptedt_modal(discord.ui.Modal):
-    def __init__(self, *, view: Uptedt_view, title: str = MISSING, timeout: Optional[float] = None, custom_id: str = MISSING) -> None:
+    def __init__(self, *, view: Uptedt_view, title: str = lib.MISSING, timeout: lib.Optional[float] = None, custom_id: str = lib.MISSING) -> None:
         super().__init__(title=title, timeout=timeout, custom_id=custom_id)
         self.url = discord.ui.TextInput(label="url", placeholder="//applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf")
         self.add_item(self.url)
@@ -830,7 +844,7 @@ class Uptedt_modal(discord.ui.Modal):
             raise Exception()
         else:
             await updtedt_menu(self.per_view.ctx, self.url.__str__(), self.per_view._class)
-            await valide_intaraction(interaction)
+            await lib.valide_intaraction(interaction)
 
 # ----------------------------------------- Menu ------------------------------------
 
