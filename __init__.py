@@ -1,4 +1,4 @@
-# coding: utf-8
+# coding: utf-8 for UsOS v1.23
 from pdf2image import convert_from_path
 import asyncio
 import requests
@@ -24,6 +24,8 @@ programmer = os.path.basename(sys.argv[0])
 
 
 vals = [classbot_folder, edt_path]
+
+decal_dico = {"Info L3T7":4, "Math L1T7":0}
 
 launch_check_edt = True
 hide_edt = False
@@ -163,7 +165,7 @@ def convert_url(url: str = "", cle_dico=None):
 
     value = [id0, id1, id2]
 
-    infos = check_edt_info(value, decal=8 if cle_dico=="l1t7"else 0)
+    infos = check_edt_info(value, decal=decal_dico.get(cle_dico, 0))
 
     try:
         size = int(infos["Content-Length"])
@@ -238,7 +240,7 @@ async def sedt(ctx:discord.Interaction, auto_check=launch_check_edt, hide = hide
 async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
     gestion = "maint."
     val = convert_url(url, cle_dico)
-
+    
     if not val:
         await ctx.response.send_message(content="`Error! Something went wrong with the url!`", ephemeral=True)
         return
@@ -267,7 +269,7 @@ async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
         await ctx.response.send_message(content="`Error! Something went wrong with the role!`", ephemeral=True)
         return
 
-    await ctx.response.send_message(content="`EDT database successfully updated!`", ephemeral=True)
+    await ctx.response.send_message(content=f"`EDT database successfully updated!`", ephemeral=True)
 
 @Lib.app.command(name="getdb", help_text="Envoie la bd")
 async def getdb(ctx:discord_commands.context.Context):
@@ -318,13 +320,13 @@ async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
         plus = 0
 
     corrupt = False
-    infos = check_edt_info(liscInfo[cle_dico], plus, decal=4 if cle_dico=="Info L3T7"else 0)
+    infos = check_edt_info(liscInfo[cle_dico], plus, decal=decal_dico.get(cle_dico, 0))
     try:
         size = int(infos["Content-Length"])
     except KeyError:
         size = 0
     status = int(infos["status"])
-    decal = 4 if cle_dico=="Info L3T7" else 0
+    decal = decal_dico.get(cle_dico, 0)
     if (size < 500) or (status != 200):
         pdf_name = f"{cle_dico}.pdf"
         corrupt = True
@@ -450,7 +452,7 @@ class edt_view(discord.ui.View):
         self.add_item(self.download)
 
 
-def compare_edt(pdf_name, indices: list = None, plus: int = 0):
+def compare_edt(pdf_name, indices: list = None, plus: int = 0, decal=0):
     #print("compare_edt")
     path_to_pdf = (pdf_name,edt_path)
 
@@ -459,7 +461,7 @@ def compare_edt(pdf_name, indices: list = None, plus: int = 0):
     except Exception:
         poid_old = 0
     #print("check_edt_info start")
-    infos = check_edt_info(indices, plus)
+    infos = check_edt_info(indices, plus, decal=decal)
     #print("check_edt_info end")
     try:
         poid_new = int(infos["Content-Length"])
@@ -537,6 +539,7 @@ def check_edt_info(indices: list = None, plus: int = 0, decal=0):
     
     url_edt = "http://applis.univ-nc.nc/gedfs/edtweb2/{}.{}/PDF_EDT_{}_{}_{}.pdf"
     url = url_edt.format(indices[0], num_semaine - indices[2] + plus + decal, indices[1], num_semaine + plus, annee)
+    #print(url)
 
     edt_info = {}
 
@@ -593,9 +596,9 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
         i += 1
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
-    check = compare_edt(pdf_name, dico_licence[current_semester][cle_dico])
+    decal = decal_dico.get(cle_dico, 0)
+    check = compare_edt(pdf_name, dico_licence[current_semester][cle_dico], decal=decal)
     corrupt = False
-    decal = 4 if cle_dico=="Info L3T7" else 0
     if check == 0:
         download_edt(pdf_name, dico_licence[current_semester][cle_dico], decal=decal)
 
