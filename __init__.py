@@ -10,6 +10,7 @@ import discord
 from understar.system import lib
 from datetime import datetime, date
 from discord.ext import commands as discord_commands
+from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
@@ -62,6 +63,25 @@ for name in lisc:
                 
 
 liscInfo = {"S1":{name:[0,0,0,name+".pdf",0] for name in new_lisc}, "S2":{name:[0,0,0,name+".pdf",0] for name in new_lisc}, "decal":{}, "current_semester":"S1"}
+
+# -------------------------------------- TRANSFORME ---------------------------------
+
+class ClassTransformer(discord.app_commands.Transformer):
+    class_name = new_lisc
+
+    @classmethod
+    async def transform(self, interaction: "discord.Interaction", value: str, /) -> discord.Color:
+        # transform predefined, rgb or random color
+        return value
+
+    @classmethod
+    async def autocomplete(self, interaction: "discord.Interaction", value: str) -> List[discord.app_commands.Choice[str]]:
+        # autocomplete predefined colors
+        choices: List[discord.app_commands.Choice] = []
+        for cls in self.class_name:
+            if cls.lower().startswith(value.lower()):
+                choices.append(discord.app_commands.Choice(name=cls, value=cls))
+        return choices[:25]
 
 @Lib.event.event()
 async def on_ready():
@@ -309,8 +329,7 @@ async def pushdb(ctx):
     await ctx.send(f"File installed at : {edt_database_path}")
 
 @Lib.app.slash(name="edt", description="Envoie ton emploi du temps", direct_command=True)
-async def edt(ctx:discord.Interaction, cle_dico:str="", plus:int=0):
-    #plus = plus.replace("+", "")
+async def edt(ctx:discord.Interaction, cle_dico:ClassTransformer="", plus:int=0):
 
     if cle_dico not in liscInfo.keys():
         cle_dico = None
