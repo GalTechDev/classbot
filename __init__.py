@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.0.2"
+app_version = "4.39"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -598,15 +598,19 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
 
     pages = convert_from_path(Lib.save.get_full_path(name=pdf_name, path=edt_path), 150)
     i = 1
+    embeds = []
+    files = []
     for page in pages:
         embed = discord.Embed(title=message, description=f"", color=discord.Color.yellow())
         file = Lib.save.get_full_path(name=f"edt{edt_id}_{i}.jpg", path=edt_path)
         page.save(file, 'JPEG')
         file=(discord.File(file,f"edt{edt_id}_{i}.jpg"))
+        files.append(file)
         embed.set_image(url=f"attachment://edt{edt_id}_{i}.jpg")
         if i==1:
             embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
-            if type(ctx) == discord.Interaction:
+            embeds.append(embed)
+            """if type(ctx) == discord.Interaction:
                 try:
                     view = edt_view(key, plus, decal, ctx)
                     view.init_download()
@@ -616,17 +620,29 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
 
             else:
                 msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
-                await msg.publish()
+                await msg.publish()"""
 
         else:
             embed.description = f"({i}/{len(pages)})"
-            if type(ctx) == discord.Interaction:
+            embeds.append(embed)
+            """if type(ctx) == discord.Interaction:
                 await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
             else:
                 msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
-                await msg.publish()
-                
+                await msg.publish()"""
         i += 1
+        
+    if type(ctx) == discord.Interaction:
+        try:
+            view = edt_view(key, plus, decal, ctx)
+            view.init_download()
+            await ctx.response.send_message(embeds=embeds,files=files, ephemeral=hide_edt, view=view)
+        except Exception as error:
+            print(error)
+
+    else:
+        msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
+        await msg.publish()
 
 async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_licence: dict = liscInfo):
     decal = decal_dico.get(cle_dico, 0)
