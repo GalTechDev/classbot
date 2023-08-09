@@ -270,8 +270,8 @@ async def sedt(ctx:discord.Interaction, auto_check=launch_check_edt, hide = hide
     await lib.lib.valide_intaraction(ctx)
     #await ctx.channel.send(f"check edt set on : {val}")
 
-#@Lib.app.command(name="uptedt", aliases=["uptedt"], checks=[Lib.is_in_staff])
-async def uptedt(ctx: discord.Interaction, url: str, cle_dico: str = ""):
+@Lib.app.slash(name="uptedt", description="Shortcut command to update link", direct_command=True)
+async def uptedt(ctx: discord.Interaction, url: str, cle_dico: ClassTransformer):
     gestion = "maint."
     val = convert_url(url, cle_dico)
     
@@ -610,26 +610,11 @@ async def send_edt_to_chat(ctx:discord.TextChannel | discord.Interaction, messag
         if i==1:
             embed.description = f"({i}/{len(pages)})" if len(pages)>1 else ""
             embeds.append(embed)
-            """if type(ctx) == discord.Interaction:
-                try:
-                    view = edt_view(key, plus, decal, ctx)
-                    view.init_download()
-                    await ctx.response.send_message(embed=embed,file=file, ephemeral=hide_edt, view=view)
-                except Exception as error:
-                    print(error)
-
-            else:
-                msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
-                await msg.publish()"""
 
         else:
             embed.description = f"({i}/{len(pages)})"
             embeds.append(embed)
-            """if type(ctx) == discord.Interaction:
-                await ctx.followup.send(embed=embed,file=file, ephemeral=hide_edt)
-            else:
-                msg = await ctx.send(content=f"||{mention}||", embed=embed, file=file)
-                await msg.publish()"""
+            
         i += 1
         
     if type(ctx) == discord.Interaction:
