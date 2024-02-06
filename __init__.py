@@ -663,6 +663,7 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
                 break
 
 def get_link(licence, trec, sem, parcour=None):
+    ref = {1:1, 2:1, 3:2, 4:2,5:3, 6:3, 7:4}
     session = requests_html.HTMLSession()
     url = "https://applis.univ-nc.nc/cgi-bin/WebObjects/EdtWeb.woa"
     r = session.get(url)
@@ -698,15 +699,15 @@ def get_link(licence, trec, sem, parcour=None):
         while html[i] != '?':
             url += html[i]
             i += 1
-        cle = f"{licence} L{sem}{str(trec).replace('TREC', 'T')}"
+        cle = f"{licence} L{ref[sem]}{str(trec).replace('TREC', 'T')}"
         res = update_edt_database(cle, value=convert_url(url, cle))
-        print(f"Found for {licence} L{sem} {trec} url : {url}", end="   ")
+        print(f"Found for {licence} L{ref[sem]} semestre {sem} {trec} url : {url}", end="   ")
         if res:
             print("EDT updated")
         else:
             print("fail to update EDT")
     except Exception as e:
-        print(f"Error for {licence} L{sem} {trec} : {e}")
+        print(f"Error for {licence} L{ref[sem]} semestre {sem} {trec} : {e}")
         
 def get_element_link(parcour, numero):
     session = requests_html.HTMLSession()
