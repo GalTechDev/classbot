@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.46"
+app_version = "4.47"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -727,9 +727,9 @@ def get_element_link(parcour, numero):
         return None
 
 @Lib.app.slash(name="scan link")
-def auto_update_link():
+async def auto_update_link(ctx: discord.Interaction):
     lisc = ["Anglais-Espagnol", "Anglais-Japonais", "Lettres", "LLCER Anglais", "LLCER LCO", "Droit", "Eco Gestion Koné", "Eco Gestion Nouméa", "Géo et Aménagement", "Histoire", "Info", "Math", "Physique Chimie", "SVT"]
-    
+    await ctx.response.send_message("Scaning...", ephemeral=True)
     for name in lisc:
         for trec in ["TREC5", "TREC7"]:
             if trec == "TREC5":
@@ -751,6 +751,8 @@ def auto_update_link():
                     if sem in [3,4] and name == "Info":
                         get_link(name, trec, sem, "MIAGE")
                     get_link(name, trec, sem)
+                    
+    await ctx.edit_original_response("Scaning finished")
 
 # -------------------------------------- EDT UPDATE ------------------------------
 @Lib.event.event()
