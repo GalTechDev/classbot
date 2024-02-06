@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.49"
+app_version = "4.5"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -723,7 +723,7 @@ async def auto_update_link(ctx: discord.Interaction):
                     for sem in range(1,6):
                         get_link(name, trec, sem, "LAS")
 
-                for sem in range(1,4):
+                for sem in range(1,6):
                     get_link(name, trec, sem, name if name in ["Math", "Physique"] else None)
                     
             else:
@@ -734,7 +734,9 @@ async def auto_update_link(ctx: discord.Interaction):
                         get_link(name, trec, sem, "MIAGE")
                     get_link(name, trec, sem)
                     
+    await on_ready()
     await ctx.edit_original_response(content="Scaning finished")
+
 
 # -------------------------------------- EDT UPDATE ------------------------------
 @Lib.event.event()
