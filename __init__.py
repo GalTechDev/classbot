@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.47"
+app_version = "4.48"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -752,7 +752,7 @@ async def auto_update_link(ctx: discord.Interaction):
                         get_link(name, trec, sem, "MIAGE")
                     get_link(name, trec, sem)
                     
-    await ctx.edit_original_response("Scaning finished")
+    await ctx.edit_original_response(content="Scaning finished")
 
 # -------------------------------------- EDT UPDATE ------------------------------
 @Lib.event.event()
