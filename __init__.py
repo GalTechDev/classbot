@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.44"
+app_version = "4.46"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
