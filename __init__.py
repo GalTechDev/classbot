@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.39"
+app_version = "4.43"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -26,12 +26,12 @@ programmer = os.path.basename(sys.argv[0])
 
 vals = [classbot_folder, edt_path]
 
-decal_dico = {"Info L3T7":4, "Math L1T7":0}
+decal_dico = {}
 
 launch_check_edt = True
 hide_edt = False
 ready = False
-current_semester = "S2"
+current_semester = "S1"
 
 lisc = ["Anglais-Espagnol", "Anglais-Japonais", "Lettres", "LLCER Anglais", "LLCER LCO", "Droit", "Eco Gestion Koné", "Eco Gestion Nouméa", "Géo et Aménagement", "Histoire", "Info", "Math", "Physique Chimie", "SVT"]
 new_lisc = []
@@ -700,10 +700,13 @@ async def check_role():
                         if trec_role in member.roles:
                             complet_role_name = f"{role_name} {trec_name}"
                             complet_role = discord.utils.get(guild.roles, name=complet_role_name)
-                            if not complet_role in member.roles:
-                                await member.add_roles(complet_role)
-                                print(f" * Roles check : {complet_role} added to {member.name}")
-                            founded_role.append(complet_role)
+                            if complet_role:
+                                if not complet_role in member.roles:
+                                    await member.add_roles(complet_role)
+                                    print(f" * Roles check : {complet_role} added to {member.name}")
+                                founded_role.append(complet_role)
+                            else:
+                                print(f" * Warning : {complet_role_name} not found in guild roles")
                         else:
                             founded_role.append(complet_role_name)
             
