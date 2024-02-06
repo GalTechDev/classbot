@@ -2,6 +2,7 @@
 from pdf2image import convert_from_path
 import asyncio
 import requests
+import requests_html
 import os.path
 import json
 import time
@@ -14,7 +15,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.43"
+app_version = "4.44"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -660,6 +661,95 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
 
                 await send_edt_to_chat(channel, message, pdf_name, cle_dico, 0, decal, dico_licence[current_semester][cle_dico], role.mention)
                 break
+
+def get_link(licence, trec, sem, parcour=None):
+    session = requests_html.HTMLSession()
+    url = "https://applis.univ-nc.nc/cgi-bin/WebObjects/EdtWeb.woa"
+    r = session.get(url)
+    
+    link = [l for l in r.html.find('a') if l.attrs['title'] == 'EDT des formations'][0]
+    r = session.get("https://applis.univ-nc.nc" + link.attrs['href'])
+
+    link = r.html.find('a', containing='LICENCE')[0]
+    r = session.get("https://applis.univ-nc.nc" + link.attrs['href'])
+
+    try:
+        link = [l for l in r.html.find('a') if licence.lower().encode('UTF-8') in l.text.replace(",", "").lower().encode('UTF-8') and trec.lower().encode('UTF-8') in l.text.replace(",", "").lower().encode('UTF-8')][0]
+        #print(link, link.text)
+    except Exception:
+        print(f"can't found : {licence} L{sem} {trec} (trec)" )
+        return
+
+    r = session.get("https://applis.univ-nc.nc" + link.attrs['href'])
+    try:
+        link = [l for l in r.html.find('a') if str(sem) == l.text][0]
+        #print(link, link.text)
+    except Exception:
+        print(f"can't found : {licence} L{sem} {trec} (sem)" )
+        return
+
+    r = session.get("https://applis.univ-nc.nc" + link.attrs['href'])
+    html = r.text
+    session.close()
+
+    url = ""
+    try:
+        i = html.index('//applis.univ-nc.nc/gedfs/edtweb2')
+        while html[i] != '?':
+            url += html[i]
+            i += 1
+        cle = f"{licence} L{sem}{str(trec).replace('TREC', 'T')}"
+        res = update_edt_database(cle, value=convert_url(url, cle))
+        print(f"Found for {licence} L{sem} {trec} url : {url}", end="   ")
+        if res:
+            print("EDT updated")
+        else:
+            print("fail to update EDT")
+    except Exception as e:
+        print(f"Error for {licence} L{sem} {trec} : {e}")
+        
+def get_element_link(parcour, numero):
+    session = requests_html.HTMLSession()
+    url = 'https://applis.univ-nc.nc/cgi-bin/WebObjects/EdtWeb.woa/2/wo/BWg5MAQ7gJGX11kLjMLotg/5.0.0.1.3.1.3.19.1.0.1.3.12.1.5.1.1.1#STS'
+    # Remplacez cette URL par l'URL réelle
+    r = session.get(url)
+
+    # Utilisez un sélecteur CSS pour trouver l'élément correspondant au parcours et numéro donnés
+    selector = f'li:contains("{parcour}") a.menuItem:nth-child({numero})'
+    element = r.html.find(selector, first=True)
+
+    if element is not None:
+        link = element.attrs['href']
+        text = element.text
+        return link, text
+    else:
+        return None
+
+@Lib.app.slash(name="scan link")
+def auto_update_link():
+    lisc = ["Anglais-Espagnol", "Anglais-Japonais", "Lettres", "LLCER Anglais", "LLCER LCO", "Droit", "Eco Gestion Koné", "Eco Gestion Nouméa", "Géo et Aménagement", "Histoire", "Info", "Math", "Physique Chimie", "SVT"]
+    
+    for name in lisc:
+        for trec in ["TREC5", "TREC7"]:
+            if trec == "TREC5":
+                if name in ["Math", "Physique Chimie"]:
+                    for sem in range(1,4):
+                        get_link(name, trec, sem, "CUPGE")
+                
+                if name in ["SVT", "Physique Chimie"]:
+                    for sem in range(1,4):
+                        get_link(name, trec, sem, "LAS")
+
+                for sem in range(1,4):
+                    get_link(name, trec, sem, name if name in ["Math", "Physique"] else None)
+                    
+            else:
+                if name == "SVT LAS":
+                    break
+                for sem in range(1,5):
+                    if sem in [3,4] and name == "Info":
+                        get_link(name, trec, sem, "MIAGE")
+                    get_link(name, trec, sem)
 
 # -------------------------------------- EDT UPDATE ------------------------------
 @Lib.event.event()
