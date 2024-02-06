@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, List
 
 Lib = lib.App()
 
-app_version = "4.48"
+app_version = "4.49"
 classbot_folder = f"classbot_folder"
 classbot_config_file = (classbot_folder,"classbot_config.json")
 edt_database_path = (classbot_folder,"edt_database.json")
@@ -651,7 +651,6 @@ async def check_edt_update(pdf_name: str, cle_dico: str, chat_id: int, dico_lice
         for channel in chat:
             if chat_id == channel.id:
                 role = discord.utils.get(server.roles, name=cle_dico)
-                print(role, server.roles, cle_dico)
                 message = ""
                 if corrupt:
                     dev = discord.utils.get(server.roles, name="Bot Dev")
@@ -708,23 +707,6 @@ def get_link(licence, trec, sem, parcour=None):
             print("fail to update EDT")
     except Exception as e:
         print(f"Error for {licence} L{ref[sem]} semestre {sem} {trec} : {e}")
-        
-def get_element_link(parcour, numero):
-    session = requests_html.HTMLSession()
-    url = 'https://applis.univ-nc.nc/cgi-bin/WebObjects/EdtWeb.woa/2/wo/BWg5MAQ7gJGX11kLjMLotg/5.0.0.1.3.1.3.19.1.0.1.3.12.1.5.1.1.1#STS'
-    # Remplacez cette URL par l'URL réelle
-    r = session.get(url)
-
-    # Utilisez un sélecteur CSS pour trouver l'élément correspondant au parcours et numéro donnés
-    selector = f'li:contains("{parcour}") a.menuItem:nth-child({numero})'
-    element = r.html.find(selector, first=True)
-
-    if element is not None:
-        link = element.attrs['href']
-        text = element.text
-        return link, text
-    else:
-        return None
 
 @Lib.app.slash(name="scan link")
 async def auto_update_link(ctx: discord.Interaction):
@@ -734,11 +716,11 @@ async def auto_update_link(ctx: discord.Interaction):
         for trec in ["TREC5", "TREC7"]:
             if trec == "TREC5":
                 if name in ["Math", "Physique Chimie"]:
-                    for sem in range(1,4):
+                    for sem in range(1,6):
                         get_link(name, trec, sem, "CUPGE")
                 
                 if name in ["SVT", "Physique Chimie"]:
-                    for sem in range(1,4):
+                    for sem in range(1,6):
                         get_link(name, trec, sem, "LAS")
 
                 for sem in range(1,4):
@@ -747,8 +729,8 @@ async def auto_update_link(ctx: discord.Interaction):
             else:
                 if name == "SVT LAS":
                     break
-                for sem in range(1,5):
-                    if sem in [3,4] and name == "Info":
+                for sem in range(1,8):
+                    if sem in [5,6,7] and name == "Info":
                         get_link(name, trec, sem, "MIAGE")
                     get_link(name, trec, sem)
                     
